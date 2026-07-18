@@ -1,4 +1,3 @@
-import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -10,10 +9,11 @@ config = context.config
 
 # Alembic runs sync; the app URL uses asyncpg. Swap the driver here so one
 # DATABASE_URL serves both.
-_url = os.environ.get(
-    "DATABASE_URL", "postgresql+asyncpg://agentdesk:agentdesk@localhost:5432/agentdesk"
+from app.config import get_settings  # noqa: E402
+
+config.set_main_option(
+    "sqlalchemy.url", get_settings().database_url.replace("+asyncpg", "+psycopg2")
 )
-config.set_main_option("sqlalchemy.url", _url.replace("+asyncpg", "+psycopg2"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

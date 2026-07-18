@@ -4,15 +4,15 @@ One demo user per role, a small category tree, default priorities (rank +
 color_hex per Document 04's semantic colors), one queue, one SLA policy per
 priority. Run after `alembic upgrade head`:
 
-    python scripts/seed.py          # inside the backend container, or
-    DATABASE_URL=... python scripts/seed.py
+    python -m scripts.seed          # from backend/ or inside the backend container
 """
 
-import os
 import uuid
 
 import bcrypt
 import sqlalchemy as sa
+
+from app.config import get_settings
 
 DEMO_PASSWORD = "Password123!"
 
@@ -36,10 +36,7 @@ CATEGORY_TREE = {
 
 
 def main() -> None:
-    url = os.environ.get(
-        "DATABASE_URL", "postgresql+asyncpg://agentdesk:agentdesk@localhost:5432/agentdesk"
-    ).replace("+asyncpg", "+psycopg2")
-    engine = sa.create_engine(url)
+    engine = sa.create_engine(get_settings().database_url.replace("+asyncpg", "+psycopg2"))
     with engine.begin() as conn:
         if conn.execute(sa.text("SELECT 1 FROM users LIMIT 1")).first():
             print("Already seeded — users exist, nothing to do.")
