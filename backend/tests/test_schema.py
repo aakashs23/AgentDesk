@@ -5,14 +5,12 @@ column with its exact type, FK enforcement, the checkpoint-named indexes, and
 the seed dataset. Needs a migrated database (skips if unreachable).
 """
 
-import os
-
 import pytest
 import sqlalchemy as sa
 
-URL = os.environ.get(
-    "DATABASE_URL", "postgresql+asyncpg://agentdesk:agentdesk@localhost:5432/agentdesk"
-).replace("+asyncpg", "+psycopg2")
+from app.config import get_settings
+
+URL = get_settings().database_url.replace("+asyncpg", "+psycopg2")
 
 # column -> information_schema data_type, per Document 05 Section 1
 U, T, TS, B, J, INT, N, V = (
