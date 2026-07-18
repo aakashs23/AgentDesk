@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+/* Design tokens — Document 04 (UI/UX), verbatim. Never add a color, radius,
+   spacing value, or second gradient that isn't defined here (Doc 04, "Never" rules). */
+
+@theme {
+  /* Light mode is the token default (Customer Portal, Login, onboarding).
+     Dark mode overrides below (Agent Console, Admin Dashboard, Ticket Detail). */
+  --color-canvas: #ffffff;
+  --color-surface: #f7f7f9;
+  --color-elevated: #ffffff; /* Doc 04 defines no separate light elevated surface */
+  --color-border: #e7e7eb;
+  --color-ink: #0b0b0f;
+  --color-muted: #6b6b76;
+
+  /* Brand gradient — the product's one gradient, and it means "AI generated". */
+  --color-brand-start: #4f7cff;
+  --color-brand-end: #8b5cf6;
+
+  /* Semantic / status — flat fills, never gradient. */
+  --color-critical: #f05252;
+  --color-high: #f5a623;
+  --color-medium: #8a93a6;
+  --color-low: #34d399;
+  --color-sla-breach: #f05252;
+  --color-sla-risk: #f5a623;
+  --color-success: #34d399;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --text-hero: 3.5rem; /* 56px, responsive down to 40px */
+  --text-h1: 2rem; /* 32px */
+  --text-h2: 1.5rem; /* 24px */
+  --text-h3: 1.125rem; /* 18px */
+  --text-body: 0.9375rem; /* 15px */
+  --text-body-sm: 0.8125rem; /* 13px */
+  --text-data: 0.8125rem; /* 13px, mono */
+  --text-caption: 0.75rem; /* 12px, uppercase, letter-spaced */
+
+  /* Spacing scale — every margin/padding/gap comes from here, no arbitrary values. */
+  --spacing-4: 4px;
+  --spacing-8: 8px;
+  --spacing-12: 12px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-48: 48px;
+  --spacing-64: 64px;
+  --spacing-96: 96px;
+
+  /* Exactly three radii: cards/panels/modals, buttons/inputs, chips/badges/avatars. */
+  --radius-card: 10px;
+  --radius-control: 8px;
+  --radius-pill: 999px;
+
+  /* Elevation: hairline for dense views, soft shadow for overlays only. */
+  --shadow-elevated: 0 10px 30px -10px rgb(0 0 0 / 0.35);
+  --shadow-glow: 0 0 40px -8px rgb(79 124 255 / 0.45);
+}
+
+/* Dark mode is opt-in per surface (`<html class="dark">` or a wrapper),
+   not driven by OS preference — Doc 04 assigns mode by surface, not by user setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark {
+  --color-canvas: #0b0b0f;
+  --color-surface: #16161d;
+  --color-elevated: #1c1c25;
+  --color-border: #2a2a35;
+  --color-ink: #f4f4f6;
+  --color-muted: #9a9aa5;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(90deg, var(--color-brand-start), var(--color-brand-end));
+  background-clip: text;
+  color: transparent;
+}
