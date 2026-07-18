@@ -34,6 +34,16 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: ruff format --check .
+      # Compose mounts init-extensions.sql as an initdb script; the service
+      # container has no such mount, so apply it here. Migrations assume the
+      # vector/pgcrypto/pg_trgm extensions already exist.
+      - run: psql "$PSQL_URL" -v ON_ERROR_STOP=1 -f scripts/init-extensions.sql
+        env:
+          PSQL_URL: postgresql://agentdesk:agentdesk@localhost:5432/agentdesk
+      - run: alembic upgrade head
+      # test_schema.py audits the live schema and the seed dataset; it only
+      # skips when the database is unreachable.
+      - run: python -m scripts.seed
       - run: pytest -q
 
   frontend:
