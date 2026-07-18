@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.auth.router import router as auth_router
+from app.auth.users_router import router as users_router
 from app.config import get_settings
 from app.db import engine
 from app.log import setup_logging
@@ -20,6 +22,10 @@ setup_logging()
 logger = logging.getLogger("agentdesk")
 
 app = FastAPI(title="AgentDesk API")
+
+# All feature endpoints are prefixed /api/v1 (TRD Section 3); health stays unprefixed
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,
