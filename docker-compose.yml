@@ -2,9 +2,9 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     environment:
-      POSTGRES_USER: agentdesk
-      POSTGRES_PASSWORD: agentdesk
-      POSTGRES_DB: agentdesk
+      POSTGRES_USER: ${POSTGRES_USER:-agentdesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-agentdesk}
     ports:
       - '5432:5432'
     volumes:
@@ -20,7 +20,7 @@ services:
     build: ./backend
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://agentdesk:agentdesk@postgres:5432/agentdesk
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-agentdesk}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-agentdesk}
     ports:
       - '8000:8000'
     volumes:
