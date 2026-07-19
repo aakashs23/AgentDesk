@@ -4,9 +4,10 @@ Assignment / Status Updates / Tags). Thin handlers — logic lives in service.py
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, Response, UploadFile
 from fastapi.responses import FileResponse
 
+from app.ai import pipeline
 from app.auth.deps import CurrentUser, SessionDep, require_role, role_name
 from app.models import User
 from app.rate_limit import rate_limit
@@ -27,9 +28,15 @@ async def _role(session, user: User) -> str:
 
 @router.post("/tickets", status_code=201, dependencies=[Depends(create_limiter)])
 async def create_ticket(
-    body: schemas.TicketCreate, caller: CurrentUser, session: SessionDep
+    body: schemas.TicketCreate,
+    caller: CurrentUser,
+    session: SessionDep,
+    background_tasks: BackgroundTasks,
 ) -> schemas.TicketOut:
-    return schemas.TicketOut.model_validate(await service.create_ticket(session, caller, body))
+    ticket = await service.create_ticket(session, caller, body)
+    # AI pipeline runs after the response (TRD §11) — creation is never blocked on it
+    background_tasks.add_task(pipeline.run_for_ticket, ticket.id)
+    return schemas.TicketOut.model_validate(ticket)
 
 
 @router.get("/tickets")

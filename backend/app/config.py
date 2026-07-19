@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     vector_db_api_key: str = ""
+    # Phase 5 decision (user-resolved): Gemini 2.5 Flash + gemini-embedding-001
+    # at 1536 dims, matching migration 0001's vector(1536) exactly.
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+    gemini_embedding_model: str = "gemini-embedding-001"
+    # App Flow §14 thresholds are illustrative pending real data — configurable, 0–100
+    ai_confidence_high: float = 85
+    ai_confidence_medium: float = 60
+    # DistilBERT classifier artifacts (scripts/train_classifier.py); missing dir → LLM-only
+    classifier_dir: str = "ml_models/classifier"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
