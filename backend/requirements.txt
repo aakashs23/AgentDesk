@@ -17,9 +17,13 @@ python-jose[cryptography]==3.5.0
 # Add passlib (or argon2-cffi) only if a second hash scheme is actually needed.
 bcrypt==5.0.0
 
-# AI orchestration — provider SDK (anthropic/openai) deferred to Phase 5
+# AI orchestration + provider (Phase 5 decision: Gemini 2.5 Flash + gemini-embedding-001)
 langchain==1.3.14
 langgraph==1.2.9
+google-genai==2.12.1
+# Supervised classifier (Phase 5 decision: DistilBERT fine-tuned on seed data)
+torch==2.13.0
+transformers==5.14.1
 
 # Dev
 # ponytail: ruff only — `ruff format` is black-compatible, so black adds nothing.

@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.ai.router import router as ai_router
 from app.auth.router import router as auth_router
 from app.auth.users_router import router as users_router
 from app.config import get_settings
@@ -28,6 +29,7 @@ app = FastAPI(title="AgentDesk API")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(tickets_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,

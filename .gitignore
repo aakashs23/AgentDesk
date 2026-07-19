@@ -231,3 +231,6 @@ dist/
 .idea/
 .vscode/
 .DS_Store
+
+# Phase 5: trained DistilBERT classifier artifacts (retrainable via scripts/train_classifier.py)
+ml_models/

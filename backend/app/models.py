@@ -6,9 +6,12 @@ Only tables used by implemented phases appear here; later phases add theirs.
 import uuid
 from datetime import UTC, datetime
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Column, DateTime, Identity, Integer, Numeric
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
+
+EMBEDDING_DIM = 1536  # gemini-embedding-001 @ output_dimensionality=1536 (Phase 5 decision)
 
 
 def _now() -> datetime:
@@ -214,6 +217,69 @@ class TicketTag(SQLModel, table=True):
     tag_id: uuid.UUID = Field(foreign_key="tags.id", primary_key=True)
     added_by: uuid.UUID | None = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+# --- AI & Knowledge (Document 05, "AI & Knowledge"; used from Phase 5) ---
+
+
+class AiClassificationHistory(SQLModel, table=True):
+    __tablename__ = "ai_classification_history"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    ticket_id: uuid.UUID = Field(foreign_key="tickets.id")
+    predicted_category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
+    predicted_priority_id: uuid.UUID | None = Field(default=None, foreign_key="priorities.id")
+    confidence: float = Field(sa_type=Numeric(5, 2))
+    confidence_tier: str  # high / medium / low (App Flow §14)
+    model_version: str
+    was_overridden: bool = False
+    overridden_by: uuid.UUID | None = Field(default=None, foreign_key="users.id")
+    corrected_category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
+    corrected_priority_id: uuid.UUID | None = Field(default=None, foreign_key="priorities.id")
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class AiDraftHistory(SQLModel, table=True):
+    __tablename__ = "ai_draft_history"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    ticket_id: uuid.UUID = Field(foreign_key="tickets.id")
+    generated_by_model: str
+    draft_content: str
+    confidence_score: float | None = Field(default=None, sa_type=Numeric(5, 2))
+    review_status: str = "pending"  # pending / approved / edited / rejected
+    reviewed_by: uuid.UUID | None = Field(default=None, foreign_key="users.id")
+    reviewed_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    final_comment_id: uuid.UUID | None = Field(default=None, foreign_key="comments.id")
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class Embedding(SQLModel, table=True):
+    __tablename__ = "embeddings"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    ticket_id: uuid.UUID = Field(foreign_key="tickets.id", unique=True)
+    source_model: str
+    embedding: list[float] = Field(sa_column=Column(Vector(EMBEDDING_DIM), nullable=False))
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class KnowledgeBaseArticle(SQLModel, table=True):
+    __tablename__ = "knowledge_base_articles"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    title: str
+    body: str
+    category_id: uuid.UUID | None = Field(default=None, foreign_key="categories.id")
+    status: str = "draft"  # draft / published
+    source_ticket_id: uuid.UUID | None = Field(default=None, foreign_key="tickets.id")
+    author_id: uuid.UUID | None = Field(default=None, foreign_key="users.id")
+    embedding: list[float] | None = Field(
+        default=None, sa_column=Column(Vector(EMBEDDING_DIM), nullable=True)
+    )
+    published_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+    updated_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
 
 
 # --- Governance (Document 05, "Governance") ---
