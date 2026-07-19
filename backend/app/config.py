@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     slack_webhook_url: str = ""
     # Not in .env.example — dev default for the Vite server; override in deployment
     frontend_origin: str = "http://localhost:5173"
+    # File storage (TRD Section 8): local disk in the prototype, 10MB default cap.
+    # The size limit becomes Admin-configurable with the admin_config module (Phase 9).
+    attachment_dir: str = "attachments"
+    attachment_max_bytes: int = 10 * 1024 * 1024
 
 
 @lru_cache
