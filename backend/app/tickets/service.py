@@ -33,7 +33,7 @@ from app.models import (
 )
 from app.sla import timers
 from app.tickets import schemas
-from app.workflow import engine
+from app.workflow import automation, engine
 
 CHANNELS = {"portal", "email", "chat"}
 STAFF = {"agent", "team_lead", "admin"}
@@ -103,6 +103,7 @@ async def create_ticket(session: AsyncSession, caller: User, body: schemas.Ticke
     # until manual classification; anchored at created_at either way (App Flow §16).
     await timers.start_timers(session, ticket, ticket.created_at)
     engine.record_created(session, ticket, caller.id)
+    await automation.dispatch(session, "ticket_created", ticket)
     await session.commit()
     await session.refresh(ticket)
     return ticket
@@ -164,6 +165,7 @@ async def change_status(
         return await reopen_ticket(session, caller, role, ticket_id)
     ticket = await get_ticket_scoped(session, caller, role, ticket_id)
     await engine.transition(session, ticket, new_status, caller.id, role)
+    await automation.dispatch(session, "status_changed", ticket)
     await session.commit()
     return ticket
 
@@ -179,6 +181,7 @@ async def reopen_ticket(
     await engine.transition(session, ticket, "reopened", caller.id, role)
     # §10: Reopened → In Progress is an automatic system re-entry
     await engine.transition(session, ticket, "in_progress", None, None)
+    await automation.dispatch(session, "status_changed", ticket)
     await session.commit()
     return ticket
 
@@ -388,6 +391,7 @@ async def create_comment(
     elif role == "requester" and ticket.status == "on_hold":
         # Automatic system resume when the requester replies
         await engine.transition(session, ticket, "in_progress", None, None)
+    await automation.dispatch(session, "comment_added", ticket)
     await session.commit()
     return comment
 
@@ -553,5 +557,6 @@ async def attach_tag(
         raise HTTPException(status_code=409, detail="Ticket already has this tag")
     session.add(TicketTag(ticket_id=ticket_id, tag_id=tag_id, added_by=caller.id))
     audit.log(session, "ticket", ticket.id, caller.id, "tag_added", after={"tag_id": str(tag_id)})
+    await automation.dispatch(session, "tag_added", ticket)
     await session.commit()
     return ticket

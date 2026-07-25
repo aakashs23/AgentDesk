@@ -19,6 +19,10 @@ def client(tmp_path_factory):
     # Attachment files land in a throwaway dir, not the repo working tree
     get_settings().attachment_dir = str(tmp_path_factory.mktemp("attachments"))
 
+    # Never let the suite reach the real Gemini API — tests that exercise the
+    # AI pipeline monkeypatch a fake key plus fake gemini functions per test
+    get_settings().gemini_api_key = ""
+
     # The suite logs in far more often than a real client from one IP — disable limits
     async def no_limit():
         return None

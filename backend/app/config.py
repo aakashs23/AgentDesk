@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     ai_confidence_medium: float = 60
     # DistilBERT classifier artifacts (scripts/train_classifier.py); missing dir → LLM-only
     classifier_dir: str = "ml_models/classifier"
+    # SLA monitor (Phase 6, TRD §11): scan cadence and how long before the
+    # resolution deadline the warning fires. 0 disables the background loop.
+    sla_scan_interval_seconds: int = 60
+    sla_warning_minutes: int = 30
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

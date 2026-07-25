@@ -48,7 +48,7 @@ def tokens(client) -> dict[str, str]:
 @pytest.fixture(autouse=True)
 def fake_ai(monkeypatch):
     """Deterministic stand-ins: 'refund' tickets classify high, 'mystery' low."""
-    get_settings().gemini_api_key = get_settings().gemini_api_key or "test-key"
+    monkeypatch.setattr(get_settings(), "gemini_api_key", "test-key")
 
     async def fake_embed(text: str) -> list[float]:
         return FAKE_VECTOR
