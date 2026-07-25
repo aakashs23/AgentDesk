@@ -219,6 +219,66 @@ class TicketTag(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
 
 
+# --- Automation (Document 05; used from Phase 6) ---
+
+
+class AutomationRule(SQLModel, table=True):
+    __tablename__ = "automation_rules"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    name: str
+    # ticket_created / status_changed / sla_warning / sla_breached / tag_added / comment_added
+    trigger_type: str
+    conditions: list = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    actions: list = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    priority: int = 100  # lower number = evaluated/wins first (App Flow §15)
+    is_active: bool = True
+    created_by: uuid.UUID = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+    updated_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class AutomationExecutionLog(SQLModel, table=True):
+    __tablename__ = "automation_execution_logs"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    automation_rule_id: uuid.UUID = Field(foreign_key="automation_rules.id")
+    ticket_id: uuid.UUID | None = Field(default=None, foreign_key="tickets.id")
+    execution_status: str  # success / failed / skipped
+    execution_started_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+    execution_completed_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    error_message: str | None = None
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class NotificationTemplate(SQLModel, table=True):
+    __tablename__ = "notification_templates"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    trigger_type: str
+    channel: str
+    subject_template: str | None = None
+    body_template: str
+    is_active: bool = True
+    created_by: uuid.UUID = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+    updated_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class Notification(SQLModel, table=True):
+    __tablename__ = "notifications"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id")
+    ticket_id: uuid.UUID | None = Field(default=None, foreign_key="tickets.id")
+    template_id: uuid.UUID | None = Field(default=None, foreign_key="notification_templates.id")
+    trigger_type: str
+    channel: str  # email / in_app / slack / teams
+    is_read: bool = False
+    payload: dict | None = Field(default=None, sa_column=Column(JSONB, nullable=True))
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
 # --- AI & Knowledge (Document 05, "AI & Knowledge"; used from Phase 5) ---
 
 

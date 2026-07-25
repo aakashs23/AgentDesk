@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–4 done (scaffolding, schema/migrations, app shell, auth/RBAC, core ticket domain). Next is Phase 5 (AI pipeline) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md) — it opens with a flagged open decision (LLM/embedding provider) that must be surfaced, not defaulted.
+Phases 0–6 done (scaffolding, schema/migrations, app shell, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines). Next is Phase 7 (Notifications & Webhooks) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
+
+Phase 5 resolved decisions (user-chosen, do not re-open silently): LLM = Gemini 2.5 Flash, embeddings = `gemini-embedding-001` at 1536 dims (matches migration 0001's `vector(1536)`), classifier = DistilBERT fine-tuned on synthetic seed data (`scripts/train_classifier.py` → `ml_models/classifier`, gitignored). `GEMINI_API_KEY` in `.env` gates the pipeline; without it ticket creation still works and the pipeline logs a skip. Still open: vector store beyond pgvector, final SLA thresholds, hosting target.
 
 ## Commands
 
