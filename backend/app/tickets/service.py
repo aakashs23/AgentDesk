@@ -31,8 +31,10 @@ from app.models import (
     TicketTag,
     User,
 )
+from app.notifications import service as notifications
 from app.sla import timers
 from app.tickets import schemas
+from app.webhooks import service as webhooks
 from app.workflow import automation, engine
 
 CHANNELS = {"portal", "email", "chat"}
@@ -106,6 +108,7 @@ async def create_ticket(session: AsyncSession, caller: User, body: schemas.Ticke
     await automation.dispatch(session, "ticket_created", ticket)
     await session.commit()
     await session.refresh(ticket)
+    webhooks.dispatch("ticket_created", webhooks.ticket_payload("ticket_created", ticket))
     return ticket
 
 
@@ -166,7 +169,21 @@ async def change_status(
     ticket = await get_ticket_scoped(session, caller, role, ticket_id)
     await engine.transition(session, ticket, new_status, caller.id, role)
     await automation.dispatch(session, "status_changed", ticket)
+    # §17: keep the requester informed of their ticket's progress (closure is its
+    # own trigger so preferences/templates can treat it separately).
+    if ticket.requester_id != caller.id:
+        trigger = "ticket_closed" if new_status == "closed" else "status_changed"
+        ref = f"AGT-{ticket.display_id}"
+        await notifications.notify(
+            session,
+            ticket.requester_id,
+            ticket.id,
+            trigger,
+            f"[{ref}] {'Closed' if new_status == 'closed' else 'Status: ' + new_status}",
+            f"Ticket {ref} — {ticket.subject} — is now {new_status}.",
+        )
     await session.commit()
+    webhooks.dispatch("status_changed", webhooks.ticket_payload("status_changed", ticket))
     return ticket
 
 
@@ -232,6 +249,16 @@ async def assign_ticket(
     )
     if ticket.status == "new":  # manual pickup moves New → Open (§10)
         await engine.transition(session, ticket, "open", caller.id, role)
+    if body.assignee_id and body.assignee_id != caller.id:  # §17 assignment trigger
+        ref = f"AGT-{ticket.display_id}"
+        await notifications.notify(
+            session,
+            body.assignee_id,
+            ticket.id,
+            "ticket_assigned",
+            f"[{ref}] Assigned to you",
+            f"Ticket {ref} — {ticket.subject} — was assigned to you.",
+        )
     await session.commit()
     return ticket
 
@@ -264,6 +291,15 @@ async def escalate_ticket(
         "escalated",
         before=before,
         after={"assignee_id": str(lead.id)},
+    )
+    ref = f"AGT-{ticket.display_id}"
+    await notifications.notify(
+        session,
+        lead.id,
+        ticket.id,
+        "escalation",
+        f"[{ref}] Escalated to you",
+        f"Ticket {ref} — {ticket.subject} — was escalated to you.",
     )
     await session.commit()
     return ticket
@@ -349,13 +385,23 @@ async def split_ticket(
 # --- Comments ---
 
 
-async def _record_mentions(session: AsyncSession, comment: Comment) -> None:
+async def _record_mentions(session: AsyncSession, comment: Comment, ticket: Ticket) -> None:
     emails = set(_MENTION_RE.findall(comment.body))
     if not emails:
         return
     result = await session.execute(sa.select(User.id).where(User.email.in_(emails)))
+    ref = f"AGT-{ticket.display_id}"
     for user_id in result.scalars():
         session.add(CommentMention(comment_id=comment.id, mentioned_user_id=user_id))
+        if user_id != comment.author_id:  # §17 @mention trigger
+            await notifications.notify(
+                session,
+                user_id,
+                ticket.id,
+                "mention",
+                f"[{ref}] You were mentioned",
+                f"You were mentioned on ticket {ref} — {ticket.subject}.",
+            )
 
 
 async def list_comments(
@@ -383,7 +429,7 @@ async def create_comment(
     )
     session.add(comment)
     await session.flush()
-    await _record_mentions(session, comment)
+    await _record_mentions(session, comment, ticket)
     # §10 side effects of replying. The response timer needs no write to "stop":
     # first-reply time is derived from this comments row against response_due_at.
     if role in STAFF and not body.is_internal and ticket.status == "open":
@@ -392,6 +438,19 @@ async def create_comment(
         # Automatic system resume when the requester replies
         await engine.transition(session, ticket, "in_progress", None, None)
     await automation.dispatch(session, "comment_added", ticket)
+    # §17 reply trigger — a public reply notifies the other side of the thread.
+    if not body.is_internal:
+        recipient = ticket.assignee_id if role == "requester" else ticket.requester_id
+        if recipient and recipient != caller.id:
+            ref = f"AGT-{ticket.display_id}"
+            await notifications.notify(
+                session,
+                recipient,
+                ticket.id,
+                "ticket_replied",
+                f"[{ref}] New reply",
+                f"There is a new reply on ticket {ref} — {ticket.subject}.",
+            )
     await session.commit()
     return comment
 
