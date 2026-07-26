@@ -288,17 +288,22 @@ def test_sla_warning_then_escalation(client, tokens, ids, db, cleanup_rules):
         ).scalar()
     assert str(warned) == ids["agent"]
 
+    def _warning_count() -> int:
+        with db.connect() as conn:
+            return conn.execute(
+                sa.text(
+                    "SELECT count(*) FROM notifications WHERE ticket_id = :tid "
+                    "AND trigger_type = 'sla_warning'"
+                ),
+                {"tid": ticket["id"]},
+            ).scalar()
+
+    # one warning event fans out to every enabled channel (email + in_app by default)
+    first_count = _warning_count()
+
     # scanning again does not duplicate the warning
     _run_scan()
-    with db.connect() as conn:
-        count = conn.execute(
-            sa.text(
-                "SELECT count(*) FROM notifications WHERE ticket_id = :tid "
-                "AND trigger_type = 'sla_warning'"
-            ),
-            {"tid": ticket["id"]},
-        ).scalar()
-    assert count == 1
+    assert _warning_count() == first_count
 
     # 2) past the deadline → escalation to the team lead + sla_breached trigger
     with db.begin() as conn:
