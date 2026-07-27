@@ -21,8 +21,10 @@ from app.auth.users_router import router as users_router
 from app.config import get_settings
 from app.db import engine
 from app.log import setup_logging
+from app.notifications.router import router as notifications_router
 from app.sla import monitor
 from app.tickets.router import router as tickets_router
+from app.webhooks.router import router as webhooks_router
 
 setup_logging()
 logger = logging.getLogger("agentdesk")
@@ -48,6 +50,8 @@ app.include_router(users_router, prefix="/api/v1")
 app.include_router(tickets_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(webhooks_router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,

@@ -13,6 +13,7 @@ import bcrypt
 import sqlalchemy as sa
 
 from app.config import get_settings
+from app.notifications.templates import default_templates
 
 DEMO_PASSWORD = "Password123!"
 
@@ -35,11 +36,56 @@ CATEGORY_TREE = {
 }
 
 
+def _seed_notification_templates(conn) -> int:
+    """One default template per (trigger_type, channel), idempotent (Phase 7).
+
+    Created by the demo admin; skipped for any pair that already has a row so
+    re-running never duplicates or clobbers Admin edits.
+    """
+    admin_id = conn.execute(
+        sa.text(
+            "SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id "
+            "WHERE r.name = 'admin' LIMIT 1"
+        )
+    ).scalar()
+    if admin_id is None:
+        return 0
+    inserted = 0
+    for row in default_templates():
+        exists = conn.execute(
+            sa.text(
+                "SELECT 1 FROM notification_templates "
+                "WHERE trigger_type = :t AND channel = :c LIMIT 1"
+            ),
+            {"t": row["trigger_type"], "c": row["channel"]},
+        ).first()
+        if exists:
+            continue
+        conn.execute(
+            sa.text(
+                "INSERT INTO notification_templates "
+                "(trigger_type, channel, subject_template, body_template, created_by) "
+                "VALUES (:t, :c, :s, :b, :admin)"
+            ),
+            {
+                "t": row["trigger_type"],
+                "c": row["channel"],
+                "s": row["subject_template"],
+                "b": row["body_template"],
+                "admin": admin_id,
+            },
+        )
+        inserted += 1
+    return inserted
+
+
 def main() -> None:
     engine = sa.create_engine(get_settings().database_url.replace("+asyncpg", "+psycopg2"))
     with engine.begin() as conn:
         if conn.execute(sa.text("SELECT 1 FROM users LIMIT 1")).first():
-            print("Already seeded — users exist, nothing to do.")
+            print("Base data already seeded — users exist.")
+            added = _seed_notification_templates(conn)
+            print(f"Notification templates: {added} inserted (existing left untouched).")
             return
 
         team_id = uuid.uuid4()
@@ -104,6 +150,8 @@ def main() -> None:
             sa.text("INSERT INTO queues (name, team_id) VALUES ('General Support', :team_id)"),
             {"team_id": team_id},
         )
+
+        _seed_notification_templates(conn)
 
     print(f"Seeded. Demo logins: *@agentdesk.dev / {DEMO_PASSWORD}")
 

@@ -19,6 +19,7 @@ from app.audit import service as audit
 from app.config import get_settings
 from app.models import Ticket
 from app.notifications import service as notifications
+from app.webhooks import service as webhooks
 from app.workflow import automation
 
 logger = logging.getLogger("agentdesk")
@@ -92,6 +93,8 @@ async def scan_once(session: AsyncSession) -> int:
                 f"Ticket {ref} is due at {ticket.resolution_due_at:%Y-%m-%d %H:%M UTC}.",
             )
         await automation.dispatch(session, trigger, ticket)
+        if breached:
+            webhooks.dispatch(trigger, webhooks.ticket_payload(trigger, ticket))
         fired += 1
     return fired
 

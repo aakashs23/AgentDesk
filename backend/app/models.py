@@ -279,6 +279,31 @@ class Notification(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
 
 
+class Webhook(SQLModel, table=True):
+    __tablename__ = "webhooks"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str  # ticket_created / status_changed / sla_breached / ...
+    target_url: str
+    secret: str  # encrypted at rest (Doc 05 Sensitive Fields; WEBHOOK_SECRET_ENCRYPTION_KEY)
+    is_active: bool = True
+    created_by: uuid.UUID = Field(foreign_key="users.id")
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
+class WebhookDelivery(SQLModel, table=True):
+    __tablename__ = "webhook_deliveries"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    webhook_id: uuid.UUID = Field(foreign_key="webhooks.id")
+    event_type: str
+    payload: dict = Field(sa_column=Column(JSONB, nullable=False))
+    response_status: int | None = None
+    attempt_count: int = 1
+    delivered_at: datetime | None = Field(default=None, sa_type=DateTime(timezone=True))
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
 # --- AI & Knowledge (Document 05, "AI & Knowledge"; used from Phase 5) ---
 
 
