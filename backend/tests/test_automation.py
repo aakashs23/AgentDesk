@@ -6,15 +6,14 @@ Runs against the migrated + seeded database. The SLA scan is driven directly
 (scan_once) instead of waiting for the background interval.
 """
 
-import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
 import pytest
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import get_settings
+from app.db import _session_factory
 from app.sla import monitor
 
 SEED_PASSWORD = "Password123!"
@@ -235,18 +234,22 @@ def test_preview_returns_matching_sample(client, tokens, ids, cleanup_rules):
     assert sample and all(t["category_id"] == ids["billing"] for t in sample)
 
 
-def _run_scan() -> int:
+def _run_scan(client) -> int:
+    # Runs scan_once on the app's own portal loop via the shared session
+    # factory (not a throwaway asyncio.run()/engine pair) — scan_once's SLA
+    # breach path fires webhooks.dispatch(), which schedules a fire-and-forget
+    # task against the shared engine's pool. A separate loop would hand that
+    # task a connection bound to a *different* loop, corrupting it for every
+    # later request that reuses it from the pool (asyncpg connections are
+    # loop-bound) — surfaced downstream as unrelated, hard-to-trace failures
+    # like ticket creation's post-commit refresh() finding no row.
     async def go() -> int:
-        engine = create_async_engine(get_settings().database_url)
-        try:
-            async with async_sessionmaker(engine)() as session:
-                fired = await monitor.scan_once(session)
-                await session.commit()
-                return fired
-        finally:
-            await engine.dispose()
+        async with _session_factory() as session:
+            fired = await monitor.scan_once(session)
+            await session.commit()
+            return fired
 
-    return asyncio.run(go())
+    return client.portal.call(go)
 
 
 def test_sla_warning_then_escalation(client, tokens, ids, db, cleanup_rules):
@@ -277,7 +280,7 @@ def test_sla_warning_then_escalation(client, tokens, ids, db, cleanup_rules):
             sa.text("UPDATE tickets SET resolution_due_at = :due WHERE id = :tid"),
             {"due": warn_at, "tid": ticket["id"]},
         )
-    assert _run_scan() >= 1
+    assert _run_scan(client) >= 1
     with db.connect() as conn:
         warned = conn.execute(
             sa.text(
@@ -302,7 +305,7 @@ def test_sla_warning_then_escalation(client, tokens, ids, db, cleanup_rules):
     first_count = _warning_count()
 
     # scanning again does not duplicate the warning
-    _run_scan()
+    _run_scan(client)
     assert _warning_count() == first_count
 
     # 2) past the deadline → escalation to the team lead + sla_breached trigger
@@ -313,7 +316,7 @@ def test_sla_warning_then_escalation(client, tokens, ids, db, cleanup_rules):
             ),
             {"tid": ticket["id"]},
         )
-    assert _run_scan() >= 1
+    assert _run_scan(client) >= 1
     got = client.get(f"{API}/tickets/{ticket['id']}", headers=_auth(tokens["admin"])).json()
     assert got["assignee_id"] == ids["lead"]
     with db.connect() as conn:
