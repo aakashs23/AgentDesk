@@ -279,6 +279,16 @@ class Notification(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
 
 
+class SavedView(SQLModel, table=True):
+    __tablename__ = "saved_views"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id")
+    name: str
+    filters: dict = Field(default_factory=dict, sa_column=Column(JSONB, nullable=False))
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
 class Webhook(SQLModel, table=True):
     __tablename__ = "webhooks"
 

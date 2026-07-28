@@ -22,6 +22,8 @@ from app.config import get_settings
 from app.db import engine
 from app.log import setup_logging
 from app.notifications.router import router as notifications_router
+from app.reporting.router import router as reporting_router
+from app.search.router import router as search_router
 from app.sla import monitor
 from app.tickets.router import router as tickets_router
 from app.webhooks.router import router as webhooks_router
@@ -52,6 +54,8 @@ app.include_router(ai_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(webhooks_router, prefix="/api/v1")
+app.include_router(search_router, prefix="/api/v1")
+app.include_router(reporting_router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,
