@@ -52,7 +52,9 @@ Postgres still needs to be running with the extensions from
 | ----------------- | ------------------------------------------------------------------ |
 | Backend dev serve | `cd backend && .venv/bin/fastapi dev app/main.py`                  |
 | Backend tests     | `cd backend && .venv/bin/pytest`                                   |
-| One backend test  | `cd backend && .venv/bin/pytest tests/test_health.py::test_health` |
+| One backend area  | `cd backend && .venv/bin/pytest tests/security`                    |
+| Skip volume tests | `cd backend && .venv/bin/pytest -m "not slow"`                     |
+| Test coverage     | `cd backend && .venv/bin/pytest --cov --cov-report=html`           |
 | Backend lint      | `cd backend && .venv/bin/ruff check . && .venv/bin/ruff format .`  |
 | Frontend dev      | `cd frontend && npm run dev`                                       |
 | Frontend build    | `cd frontend && npm run build`                                     |
@@ -60,6 +62,12 @@ Postgres still needs to be running with the extensions from
 | Frontend format   | `cd frontend && npm run format`                                    |
 
 Migrations arrive in Phase 1 (`alembic upgrade head`).
+
+The test suite needs no setup beyond a reachable Postgres: it provisions its own
+`*_test` database (create → extensions → migrate → seed) on first run, and
+refuses to start against a database whose name does not end in `_test`. Findings
+from the Phase 0–8 verification pass are in
+[`backend/TEST_REPORT.md`](backend/TEST_REPORT.md).
 
 ## Project status
 

@@ -18,6 +18,10 @@ from app.models import EMBEDDING_DIM
 SEED_PASSWORD = "Password123!"
 API = "/api/v1"
 
+# These tests drive the real pipeline graph, so they opt out of conftest's
+# autouse stub that keeps the background task out of everyone else's way.
+pytestmark = pytest.mark.ai
+
 FAKE_VECTOR = [1.0] + [0.0] * (EMBEDDING_DIM - 1)
 
 
