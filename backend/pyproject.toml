@@ -9,3 +9,24 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "ai: exercises the real AI pipeline graph (stubs the Gemini calls itself)",
+    "slow: bulk/volume tests — deselect with -m 'not slow'",
+]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+# The app runs on the TestClient's portal thread, and SQLAlchemy's asyncio layer
+# executes ORM code inside greenlets. Without both, coverage misses most of the
+# service layer and reports ~47% for files the suite exercises heavily.
+concurrency = ["thread", "greenlet"]
+omit = ["app/ai/classifier.py"]  # loads torch/transformers; no model in CI
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

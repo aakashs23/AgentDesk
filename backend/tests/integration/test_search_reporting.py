@@ -50,7 +50,7 @@ def test_search_blends_and_scopes_by_role(client, tokens):
     token = f"unicorn{uuid.uuid4().hex[:8]}"  # a lexeme that exists nowhere else
     _create(client, tokens["requester"], f"{token} keyboard issue")
     admin_only = f"adminsecret{uuid.uuid4().hex[:8]}"
-    _create(client, tokens["admin"], f"{admin_only} internal thing")
+    hidden = _create(client, tokens["admin"], f"{admin_only} internal thing")
 
     # Requester finds their own ticket
     r = client.get(f"{API}/search/tickets", params={"q": token}, headers=_auth(tokens["requester"]))
@@ -58,11 +58,14 @@ def test_search_blends_and_scopes_by_role(client, tokens):
     subjects = [t["subject"] for t in r.json()["tickets"]]
     assert any(token in s for s in subjects)
 
-    # Requester does NOT see the admin-owned ticket (scope_tickets_to_caller)
+    # Requester does NOT see the admin-owned ticket (scope_tickets_to_caller).
+    # Assert on that ticket's absence, not on an empty list: search is fuzzy, so
+    # unrelated rows the requester legitimately owns can also score above the
+    # trigram floor for this term.
     r = client.get(
         f"{API}/search/tickets", params={"q": admin_only}, headers=_auth(tokens["requester"])
     )
-    assert r.json()["tickets"] == []
+    assert hidden["id"] not in {t["id"] for t in r.json()["tickets"]}
 
     # Admin sees it org-wide
     r = client.get(
