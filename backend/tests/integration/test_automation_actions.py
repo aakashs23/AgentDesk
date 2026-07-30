@@ -177,20 +177,18 @@ def test_the_add_tag_action_is_idempotent(client, db, tokens, rule_cleanup):
 
 
 def test_the_notify_action_writes_a_notification(client, db, tokens, rule_cleanup, user_ids):
-    """The rule's `message` is a *fallback*, not an override.
+    """An active template renders the notification when the action supplies no text.
 
-    `notifications.notify` prefers an active template for the
-    (trigger, channel) pair and only falls back to the caller's text when none
-    exists. Seeding creates a template for every pair, so in a seeded system the
-    rendered template always wins — see BUG-23 for why that makes the action's
-    `message` parameter effectively dead.
+    Seeding creates a template for every (trigger, channel) pair, so this is the
+    normal path. An action that *does* carry a `message` overrides the template
+    instead (BUG-23) — covered in tests/regression/test_hardening_gaps.py.
     """
     _rule, ticket = _fire(
         client,
         db,
         tokens,
         rule_cleanup,
-        [{"type": "notify", "user_id": user_ids["agent"], "message": "Custom automation message"}],
+        [{"type": "notify", "user_id": user_ids["agent"]}],
     )
     with db.connect() as conn:
         payload = conn.execute(
@@ -277,7 +275,8 @@ def test_the_escalate_action_reassigns_to_the_team_lead(client, db, tokens, rule
         {"type": "assign", "queue_id": "00000000-0000-0000-0000-000000000000"},
         {"type": "assign", "assignee_id": "00000000-0000-0000-0000-000000000000"},
         {"type": "add_tag", "tag_id": "00000000-0000-0000-0000-000000000000"},
-        {"type": "not_a_real_action"},
+        # an unknown `type` no longer reaches here — `_validate_rule` refuses the
+        # rule at creation (BUG-16), covered in tests/regression/test_hardening_gaps.py
     ],
 )
 def test_a_broken_action_is_logged_and_never_breaks_the_request(

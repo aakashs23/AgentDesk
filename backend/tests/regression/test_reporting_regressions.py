@@ -7,12 +7,8 @@ these easy to ship unnoticed, and the pre-existing suite did exactly that: its
 parametrised report test covered three of the five generators.
 """
 
-import pytest
-
 from tests.helpers.assertions import assert_status
 from tests.helpers.auth import API, auth
-
-pytestmark = pytest.mark.xfail(strict=True, reason="confirmed defect — see TEST_REPORT.md")
 
 
 def test_the_category_analytics_report_completes(client, tokens):

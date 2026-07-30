@@ -431,7 +431,7 @@ def test_attachment_upload_download_reject_replace(client, tokens, monkeypatch):
     # Replace: version chain (Doc 05 §9 / App Flow §22)
     v2 = client.post(
         f"{API}/tickets/{tid}/attachments?replaces_attachment_id={first['id']}",
-        files={"file": ("screenshot.png", b"better bytes", "image/png")},
+        files={"file": ("screenshot.png", b"\x89PNG better bytes", "image/png")},
         headers=_auth(requester),
     ).json()
     assert v2["version"] == 2

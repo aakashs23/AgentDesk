@@ -5,17 +5,24 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
+from app.validators import SafeText
+
+# Upper bounds so one request cannot store a megabyte per field; the UI already
+# truncates well below these (BUG-15).
+SUBJECT_MAX = 200
+BODY_MAX = 20_000
+
 
 class TicketCreate(BaseModel):
-    subject: str = Field(min_length=1)
-    description: str = Field(min_length=1)
+    subject: SafeText = Field(min_length=1, max_length=SUBJECT_MAX)
+    description: SafeText = Field(min_length=1, max_length=BODY_MAX)
     channel: str = "portal"  # portal/email/chat (Document 05)
     category_id: uuid.UUID | None = None  # the ticket form's optional category dropdown
 
 
 class TicketUpdate(BaseModel):
-    subject: str | None = Field(default=None, min_length=1)
-    description: str | None = Field(default=None, min_length=1)
+    subject: SafeText | None = Field(default=None, min_length=1, max_length=SUBJECT_MAX)
+    description: SafeText | None = Field(default=None, min_length=1, max_length=BODY_MAX)
     # Classification fields — staff only (Doc 05 §6)
     category_id: uuid.UUID | None = None
     priority_id: uuid.UUID | None = None
@@ -65,12 +72,12 @@ class StatusHistoryOut(BaseModel):
 
 
 class CommentCreate(BaseModel):
-    body: str = Field(min_length=1)
+    body: SafeText = Field(min_length=1, max_length=BODY_MAX)
     is_internal: bool = False
 
 
 class CommentUpdate(BaseModel):
-    body: str = Field(min_length=1)
+    body: SafeText = Field(min_length=1, max_length=BODY_MAX)
 
 
 class CommentOut(BaseModel):
@@ -102,7 +109,7 @@ class AttachmentOut(BaseModel):
 
 
 class TagCreate(BaseModel):
-    name: str = Field(min_length=1)
+    name: SafeText = Field(min_length=1, max_length=100)
 
 
 class TagOut(BaseModel):
@@ -126,8 +133,8 @@ class MergeRequest(BaseModel):
 
 
 class SplitPart(BaseModel):
-    subject: str = Field(min_length=1)
-    description: str = Field(min_length=1)
+    subject: SafeText = Field(min_length=1, max_length=SUBJECT_MAX)
+    description: SafeText = Field(min_length=1, max_length=BODY_MAX)
 
 
 class SplitRequest(BaseModel):

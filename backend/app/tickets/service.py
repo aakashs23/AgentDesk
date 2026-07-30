@@ -15,7 +15,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import service as audit
-from app.auth.deps import scope_tickets_to_caller
+from app.auth.deps import role_name, scope_tickets_to_caller
 from app.config import get_settings
 from app.models import (
     Attachment,
@@ -58,19 +58,50 @@ def _now() -> datetime:
     return datetime.now(UTC)
 
 
+# The declared content type is whatever the client wrote in the part header, so
+# it is checked against the bytes. Types with no recognisable signature (SVG and
+# other text-based images) have no entry and fall through.
+_MAGIC_PREFIXES: dict[str, tuple[bytes, ...]] = {
+    "image/png": (b"\x89PNG",),
+    "image/jpeg": (b"\xff\xd8\xff",),
+    "image/gif": (b"GIF87a", b"GIF89a"),
+    "image/bmp": (b"BM",),
+    "image/webp": (b"RIFF",),
+    "image/tiff": (b"II*\x00", b"MM\x00*"),
+    "application/pdf": (b"%PDF",),
+    # every OOXML document is a zip container
+    **{mime: (b"PK\x03\x04",) for mime in ALLOWED_MIME_TYPES if mime != "application/pdf"},
+}
+
+
 def _mime_allowed(mime: str) -> bool:
     return mime.startswith("image/") or mime in ALLOWED_MIME_TYPES
+
+
+def _content_matches(mime: str, content: bytes) -> bool:
+    prefixes = _MAGIC_PREFIXES.get(mime)
+    return prefixes is None or content.startswith(prefixes)
 
 
 # --- Access ---
 
 
 async def get_ticket_scoped(
-    session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID
+    session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID, for_update: bool = False
 ) -> Ticket:
-    """404 for both missing and out-of-scope — no existence leak across requesters."""
+    """404 for both missing and out-of-scope — no existence leak across requesters.
+
+    `for_update` takes a row lock, and every path that reads the ticket, decides
+    from what it read, then writes must use it: without it concurrent requests
+    all validate against the same stale row (duplicate status-history rows, lost
+    `reopened_count` increments). The scoping criterion is a subquery, never an
+    outer join, so FOR UPDATE applies cleanly to `tickets`.
+    """
     criterion = scope_tickets_to_caller(caller, role, Ticket, Queue, User)
-    result = await session.execute(sa.select(Ticket).where(Ticket.id == ticket_id, criterion))
+    query = sa.select(Ticket).where(Ticket.id == ticket_id, criterion)
+    if for_update:
+        query = query.with_for_update()
+    result = await session.execute(query)
     ticket = result.scalar_one_or_none()
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -131,7 +162,7 @@ async def list_tickets(
 async def update_ticket(
     session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID, body: schemas.TicketUpdate
 ) -> Ticket:
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     changes = body.model_dump(exclude_unset=True)
     if role not in STAFF and not set(changes) <= {"subject", "description"}:
         raise HTTPException(status_code=403, detail="Only staff may classify tickets")
@@ -166,7 +197,7 @@ async def change_status(
 ) -> Ticket:
     if new_status == "reopened":
         return await reopen_ticket(session, caller, role, ticket_id)
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     await engine.transition(session, ticket, new_status, caller.id, role)
     await automation.dispatch(session, "status_changed", ticket)
     # §17: keep the requester informed of their ticket's progress (closure is its
@@ -190,7 +221,7 @@ async def change_status(
 async def reopen_ticket(
     session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID
 ) -> Ticket:
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     if ticket.merged_into_ticket_id:
         raise HTTPException(status_code=409, detail="Merged tickets cannot be reopened")
     if ticket.closed_at and _now() - ticket.closed_at > timedelta(days=REOPEN_WINDOW_DAYS):
@@ -227,16 +258,26 @@ async def assign_ticket(
 ) -> Ticket:
     if body.assignee_id is None and body.queue_id is None:
         raise HTTPException(status_code=422, detail="Provide assignee_id and/or queue_id")
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     before = {"assignee_id": str(ticket.assignee_id), "queue_id": str(ticket.queue_id)}
+    if body.queue_id:
+        await _get_or_422(session, Queue, body.queue_id, "queue")
+        ticket.queue_id = body.queue_id
     if body.assignee_id:
         assignee = await _get_or_422(session, User, body.assignee_id, "assignee")
         if not assignee.is_active:
             raise HTTPException(status_code=422, detail="Assignee is deactivated")
+        # A requester assignee cannot see the ticket at all (they are scoped by
+        # requester_id), so it would look assigned while sitting in nobody's queue
+        if await role_name(session, assignee.role_id) not in STAFF:
+            raise HTTPException(status_code=422, detail="Assignee cannot work tickets")
+        # The queue model exists to keep work inside a team; crossing it silently
+        # defeats it (§6 visibility still holds either way, so this is routing).
+        if ticket.queue_id:
+            queue = await session.get(Queue, ticket.queue_id)
+            if queue.team_id and assignee.team_id != queue.team_id:
+                raise HTTPException(status_code=422, detail="Assignee is not on the queue's team")
         ticket.assignee_id = assignee.id
-    if body.queue_id:
-        await _get_or_422(session, Queue, body.queue_id, "queue")
-        ticket.queue_id = body.queue_id
     ticket.updated_at = _now()
     audit.log(
         session,
@@ -266,7 +307,7 @@ async def assign_ticket(
 async def escalate_ticket(
     session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID
 ) -> Ticket:
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     team_id = None
     if ticket.queue_id:
         team_id = (await session.get(Queue, ticket.queue_id)).team_id
@@ -317,8 +358,13 @@ async def merge_ticket(
 ) -> Ticket:
     if ticket_id == target_id:
         raise HTTPException(status_code=422, detail="Cannot merge a ticket into itself")
-    secondary = await get_ticket_scoped(session, caller, role, ticket_id)
-    primary = await get_ticket_scoped(session, caller, role, target_id)
+    # Both rows are read-then-written, so both are locked — always lowest id
+    # first, or two reciprocal merges deadlock holding the row the other needs.
+    locked = {
+        tid: await get_ticket_scoped(session, caller, role, tid, for_update=True)
+        for tid in sorted((ticket_id, target_id))
+    }
+    secondary, primary = locked[ticket_id], locked[target_id]
     if secondary.merged_into_ticket_id or secondary.status == "closed":
         raise HTTPException(status_code=409, detail="Ticket is already closed or merged")
     if primary.merged_into_ticket_id or primary.status == "closed":
@@ -421,7 +467,7 @@ async def create_comment(
     ticket_id: uuid.UUID,
     body: schemas.CommentCreate,
 ) -> Comment:
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     if body.is_internal and role not in STAFF:
         raise HTTPException(status_code=403, detail="Only staff may write internal notes")
     comment = Comment(
@@ -479,6 +525,11 @@ async def update_comment(
 async def delete_comment(
     session: AsyncSession, caller: User, role: str, comment_id: uuid.UUID
 ) -> None:
+    """Hard delete, by decision — Doc 05 (`comments`) has no `deleted_at`.
+
+    That makes the audit row below the only surviving copy, so `before` must
+    keep carrying the body: drop it and the delete becomes unrecoverable.
+    """
     comment = await _get_comment_as_author_or_admin(session, caller, role, comment_id)
     await session.execute(sa.delete(CommentMention).where(CommentMention.comment_id == comment.id))
     await session.execute(
@@ -519,6 +570,10 @@ async def add_attachment(
             status_code=413,
             detail=f"File exceeds the {settings.attachment_max_bytes // (1024 * 1024)}MB limit",
         )
+    if not content:
+        raise HTTPException(status_code=422, detail="File is empty")
+    if not _content_matches(mime, content):
+        raise HTTPException(status_code=415, detail=f"File contents are not {mime}")
 
     replaced = None
     if replaces_attachment_id:
@@ -609,7 +664,7 @@ async def create_tag(session: AsyncSession, name: str) -> Tag:
 async def attach_tag(
     session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID, tag_id: uuid.UUID
 ) -> Ticket:
-    ticket = await get_ticket_scoped(session, caller, role, ticket_id)
+    ticket = await get_ticket_scoped(session, caller, role, ticket_id, for_update=True)
     if await session.get(Tag, tag_id) is None:
         raise HTTPException(status_code=404, detail="Tag not found")
     if await session.get(TicketTag, (ticket_id, tag_id)):

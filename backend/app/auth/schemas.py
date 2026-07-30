@@ -2,7 +2,10 @@
 
 import uuid
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
+
+from app.auth.security import MAX_PASSWORD_BYTES
+from app.validators import BoundedJson, NormalisedEmail
 
 
 class UserOut(BaseModel):
@@ -19,7 +22,7 @@ class UserOut(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: NormalisedEmail
     password: str
 
 
@@ -43,18 +46,18 @@ class LogoutRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=8)
+    email: NormalisedEmail
+    password: str = Field(min_length=8, max_length=MAX_PASSWORD_BYTES)
     full_name: str = Field(min_length=1)
 
 
 class PasswordResetRequest(BaseModel):
-    email: EmailStr
+    email: NormalisedEmail
 
 
 class PasswordResetConfirm(BaseModel):
     token: str
-    new_password: str = Field(min_length=8)
+    new_password: str = Field(min_length=8, max_length=MAX_PASSWORD_BYTES)
 
 
 class VerifyEmailRequest(BaseModel):
@@ -64,7 +67,7 @@ class VerifyEmailRequest(BaseModel):
 class UserCreate(BaseModel):
     """Admin-provisioned account (invite flow, App Flow Doc 03 §24)."""
 
-    email: EmailStr
+    email: NormalisedEmail
     full_name: str = Field(min_length=1)
     role: str  # requester / agent / team_lead / admin
     team_id: uuid.UUID | None = None
@@ -73,7 +76,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     full_name: str | None = None
     theme_preference: str | None = None
-    notification_preferences: dict | None = None
+    notification_preferences: BoundedJson | None = None
     # Admin-only fields (403 for anyone else)
     role: str | None = None
     team_id: uuid.UUID | None = None

@@ -35,8 +35,8 @@ async def refresh(body: schemas.RefreshRequest, session: SessionDep) -> schemas.
 
 
 @router.post("/logout", status_code=204)
-async def logout(body: schemas.LogoutRequest, _: CurrentUser, session: SessionDep) -> Response:
-    await service.logout(session, body.refresh_token)
+async def logout(body: schemas.LogoutRequest, caller: CurrentUser, session: SessionDep) -> Response:
+    await service.logout(session, caller, body.refresh_token)
     return Response(status_code=204)
 
 

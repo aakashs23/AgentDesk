@@ -12,9 +12,6 @@ from tests.helpers import factories as f
 from tests.helpers.assertions import assert_no_server_error
 from tests.helpers.auth import API, auth
 
-pytestmark = pytest.mark.xfail(strict=True, reason="confirmed defect — see TEST_REPORT.md")
-
-
 # --- BUG-1: passwords over bcrypt's 72-byte limit ---
 
 

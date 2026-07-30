@@ -5,13 +5,10 @@ operation is gated on *a* role but not on the specific relationship that makes
 the operation meaningful.
 """
 
-import pytest
 import sqlalchemy as sa
 
 from tests.helpers import factories as f
 from tests.helpers.auth import API, auth, refresh_token_for
-
-pytestmark = pytest.mark.xfail(strict=True, reason="confirmed defect — see TEST_REPORT.md")
 
 
 def test_logout_only_revokes_a_token_belonging_to_the_caller(client, db, tokens):

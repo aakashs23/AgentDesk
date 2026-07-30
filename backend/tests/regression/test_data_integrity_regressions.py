@@ -8,14 +8,11 @@ scenarios *looks* successful from the client side.
 
 import concurrent.futures as cf
 
-import pytest
 import sqlalchemy as sa
 
 from tests.helpers import factories as f
 from tests.helpers.assertions import count_where
 from tests.helpers.auth import API, auth, refresh_token_for
-
-pytestmark = pytest.mark.xfail(strict=True, reason="confirmed defect — see TEST_REPORT.md")
 
 WORKERS = 6
 
