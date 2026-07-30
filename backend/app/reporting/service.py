@@ -10,6 +10,7 @@ ponytail: the report store is an in-process dict, not a table — Doc 05 has no
 prototype; swap for Redis/a table if this ever runs multi-worker.
 """
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -24,9 +25,13 @@ from app.models import (
     Category,
     Priority,
     Queue,
+    Role,
     Ticket,
     User,
 )
+from app.tickets.service import STAFF
+
+logger = logging.getLogger("agentdesk")
 
 OPEN_STATUSES_EXCLUDED = ("closed", "resolved")  # everything else counts as "open"
 
@@ -82,7 +87,10 @@ async def dashboard_metrics(session: AsyncSession, caller: User, role: str) -> d
         await session.execute(
             sa.select(Ticket.assignee_id, User.full_name, sa.func.count().label("open"))
             .join(User, User.id == Ticket.assignee_id)
-            .where(scope, Ticket.status.notin_(OPEN_STATUSES_EXCLUDED))
+            # Assignment now refuses non-staff, but rows written before that (or
+            # by a direct DB edit) must not show a requester as an agent.
+            .join(Role, Role.id == User.role_id)
+            .where(scope, Ticket.status.notin_(OPEN_STATUSES_EXCLUDED), Role.name.in_(STAFF))
             .group_by(Ticket.assignee_id, User.full_name)
             .order_by(sa.desc("open"))
         )
@@ -191,6 +199,7 @@ async def _category_analytics(session, ids, start, end):
     q = (
         _range(
             sa.select(Category.name, sa.func.count().label("count"))
+            .select_from(Ticket)  # or the lone Category column infers the FROM
             .join(Category, Category.id == Ticket.category_id, isouter=True)
             .where(Ticket.id.in_(sa.select(ids.c.id))),
             Ticket.created_at,
@@ -323,6 +332,9 @@ async def generate(
             ids = _scoped_ticket_ids(caller, role)
             report.columns, report.rows = await GENERATORS[report_type](session, ids, start, end)
         report.status = "ready"
-    except Exception as exc:  # store the failure instead of losing it in a background task
+    except Exception:  # store the failure instead of losing it in a background task
+        logger.exception("report %s (%s) failed to generate", report_id, report_type)
         report.status = "failed"
-        report.error = str(exc)
+        # `str(exc)` here reaches the client verbatim — ORM internals, memory
+        # addresses and all. The detail belongs in the log, not the response.
+        report.error = "Report generation failed"

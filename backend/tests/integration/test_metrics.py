@@ -16,12 +16,7 @@ REPORT_TYPES = [
     "sla_compliance",
     "ticket_trends",
     "ai_performance",
-    # category_analytics never completes — see BUG-21 in
-    # tests/regression/test_reporting_regressions.py for the root cause.
-    pytest.param(
-        "category_analytics",
-        marks=pytest.mark.xfail(strict=True, reason="BUG-21: query cannot be compiled"),
-    ),
+    "category_analytics",
 ]
 
 

@@ -53,6 +53,8 @@ CONDITION_FIELDS = {
     "subject",
     "description",
 }
+# the vocabulary `_execute_actions` dispatches on — validated at rule creation
+ACTION_TYPES = {"assign", "set_priority", "add_tag", "notify", "escalate"}
 # ticket fields a rule action can write — the conflict-resolution slots (§15)
 _SLOTS = ("assignee_id", "queue_id", "priority_id")
 
@@ -135,22 +137,28 @@ async def _execute_actions(
 ) -> None:
     for action in rule.actions:
         kind = action.get("type")
+        # Targets are validated *before* the slot is claimed: a rule that then
+        # raises would otherwise keep the slot, suppressing the next rule that
+        # wants the field as a §15 conflict — so a valid rule silently never runs.
         if kind == "assign":
-            if action.get("queue_id") and await _claim(session, ticket, slots, "queue_id", rule):
-                if await session.get(Queue, uuid.UUID(action["queue_id"])) is None:
+            if action.get("queue_id"):
+                queue_id = uuid.UUID(action["queue_id"])
+                if await session.get(Queue, queue_id) is None:
                     raise ValueError(f"assign: unknown queue {action['queue_id']}")
-                ticket.queue_id = uuid.UUID(action["queue_id"])
-            if action.get("assignee_id") and await _claim(
-                session, ticket, slots, "assignee_id", rule
-            ):
-                if await session.get(User, uuid.UUID(action["assignee_id"])) is None:
+                if await _claim(session, ticket, slots, "queue_id", rule):
+                    ticket.queue_id = queue_id
+            if action.get("assignee_id"):
+                assignee_id = uuid.UUID(action["assignee_id"])
+                if await session.get(User, assignee_id) is None:
                     raise ValueError(f"assign: unknown user {action['assignee_id']}")
-                ticket.assignee_id = uuid.UUID(action["assignee_id"])
+                if await _claim(session, ticket, slots, "assignee_id", rule):
+                    ticket.assignee_id = assignee_id
         elif kind == "set_priority":
+            priority_id = uuid.UUID(action["priority_id"])
+            if await session.get(Priority, priority_id) is None:
+                raise ValueError(f"set_priority: unknown priority {action['priority_id']}")
             if await _claim(session, ticket, slots, "priority_id", rule):
-                if await session.get(Priority, uuid.UUID(action["priority_id"])) is None:
-                    raise ValueError(f"set_priority: unknown priority {action['priority_id']}")
-                ticket.priority_id = uuid.UUID(action["priority_id"])
+                ticket.priority_id = priority_id
         elif kind == "add_tag":
             tag_id = uuid.UUID(action["tag_id"])
             if await session.get(Tag, tag_id) is None:
@@ -160,13 +168,15 @@ async def _execute_actions(
         elif kind == "notify":
             user_id = action.get("user_id") or ticket.assignee_id
             if user_id:
+                message = action.get("message")
                 await notifications.notify(
                     session,
                     uuid.UUID(str(user_id)),
                     ticket.id,
                     "automation_executed",
                     f"[AGT-{ticket.display_id}] {rule.name}",
-                    action.get("message", f"Automation rule '{rule.name}' matched this ticket."),
+                    message or f"Automation rule '{rule.name}' matched this ticket.",
+                    override_template=message is not None,
                 )
         elif kind == "escalate":
             lead = await _find_team_lead(session, ticket)

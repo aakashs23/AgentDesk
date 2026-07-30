@@ -5,9 +5,12 @@ only once, in the create response, so the receiver can be configured to verify
 signatures; it is never echoed back on reads.
 """
 
+import ipaddress
+import socket
 import uuid
 from datetime import datetime
 from typing import Annotated
+from urllib.parse import urlparse
 
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -63,6 +66,29 @@ class DeliveryOut(BaseModel):
     created_at: datetime
 
 
+def _validate_target(url: str | None) -> None:
+    """Reject SSRF targets: the request originates inside the perimeter (BUG-17).
+
+    ponytail: one blocking getaddrinfo on an admin-only write, and a host that
+    does not resolve is left alone — DNS being down is not evidence of intent.
+    """
+    if url is None:
+        return
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise HTTPException(status_code=422, detail="target_url must be an http(s) URL")
+    try:
+        resolved = socket.getaddrinfo(parsed.hostname, None)
+    except socket.gaierror:
+        return
+    for info in resolved:
+        ip = ipaddress.ip_address(info[4][0])
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise HTTPException(
+                status_code=422, detail="target_url resolves to a non-routable address"
+            )
+
+
 def _validate_event(event_type: str | None) -> None:
     if event_type is not None and event_type not in service.WEBHOOK_EVENTS:
         raise HTTPException(status_code=422, detail=f"Unknown event_type: {event_type}")
@@ -86,6 +112,7 @@ async def create_webhook(
     body: WebhookIn, caller: AdminUser, session: SessionDep
 ) -> WebhookCreatedOut:
     _validate_event(body.event_type)
+    _validate_target(body.target_url)
     secret = body.secret or service.new_secret()
     webhook = Webhook(
         event_type=body.event_type,
@@ -117,6 +144,7 @@ async def update_webhook(
     webhook = await _get_webhook(session, webhook_id)
     changes = body.model_dump(exclude_unset=True)
     _validate_event(changes.get("event_type"))
+    _validate_target(changes.get("target_url"))
     for key, value in changes.items():
         setattr(webhook, key, value)
     audit.log(

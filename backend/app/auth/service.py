@@ -7,14 +7,25 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit import service as audit
 from app.auth import security
 from app.auth.deps import role_name
 from app.auth.schemas import UserCreate, UserOut, UserUpdate
 from app.config import get_settings
-from app.models import EmailVerificationToken, PasswordResetToken, RefreshToken, Role, Team, User
+from app.models import (
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshToken,
+    Role,
+    Team,
+    Ticket,
+    User,
+)
 from app.notifications import mailer
 
 SELF_EDITABLE_FIELDS = {"full_name", "theme_preference", "notification_preferences"}
+# A ticket in one of these needs nobody to act on it, so a departing assignee is fine
+TERMINAL_STATUSES = ("resolved", "closed")
 
 
 def _now() -> datetime:
@@ -35,7 +46,11 @@ async def to_user_out(session: AsyncSession, user: User) -> UserOut:
 
 
 async def _user_by_email(session: AsyncSession, email: str) -> User | None:
-    result = await session.execute(sa.select(User).where(User.email == email))
+    # Schemas lower-case on the way in; comparing on lower() also catches rows
+    # written before that, so one mailbox can never reach two accounts.
+    result = await session.execute(
+        sa.select(User).where(sa.func.lower(User.email) == email.strip().lower())
+    )
     return result.scalar_one_or_none()
 
 
@@ -66,6 +81,31 @@ async def _issue_refresh(
         )
     )
     return raw
+
+
+async def _release_assigned_tickets(session: AsyncSession, user_id: uuid.UUID) -> None:
+    """Hand a deactivated user's live tickets back to queue-level visibility.
+
+    Left assigned, they sit outside every queue view whose team does not own
+    them while their SLA clocks keep running, with nobody able to act.
+    """
+    result = await session.execute(
+        sa.update(Ticket)
+        .where(Ticket.assignee_id == user_id, Ticket.status.not_in(TERMINAL_STATUSES))
+        .values(assignee_id=None, updated_at=_now())
+        .returning(Ticket.id)
+        .execution_options(synchronize_session=False)
+    )
+    for ticket_id in result.scalars():
+        audit.log(
+            session,
+            "ticket",
+            ticket_id,
+            None,
+            "unassigned",
+            before={"assignee_id": str(user_id)},
+            after={"assignee_id": None, "reason": "assignee deactivated"},
+        )
 
 
 async def _revoke_all_refresh(session: AsyncSession, user_id: uuid.UUID) -> None:
@@ -100,16 +140,26 @@ async def login(
 
 
 async def rotate_refresh(session: AsyncSession, raw_token: str) -> tuple[str, str]:
+    # The revoke *is* the guard. Checking `revoked_at` and then writing it lets
+    # concurrent replays of the same token all pass the check before any commits;
+    # a conditional UPDATE means exactly one caller can claim a single-use token.
     result = await session.execute(
-        sa.select(RefreshToken).where(RefreshToken.token_hash == security.hash_token(raw_token))
+        sa.update(RefreshToken)
+        .where(
+            RefreshToken.token_hash == security.hash_token(raw_token),
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at >= _now(),
+        )
+        .values(revoked_at=_now())
+        .returning(RefreshToken.user_id, RefreshToken.user_agent, RefreshToken.ip_address)
+        .execution_options(synchronize_session=False)
     )
-    token = result.scalar_one_or_none()
-    if token is None or token.revoked_at is not None or token.expires_at < _now():
+    token = result.first()
+    if token is None:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
     user = await session.get(User, token.user_id)
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
-    token.revoked_at = _now()  # rotation: each refresh token is single-use
     access = security.create_access_token(
         user.id, await role_name(session, user.role_id), user.team_id
     )
@@ -118,11 +168,12 @@ async def rotate_refresh(session: AsyncSession, raw_token: str) -> tuple[str, st
     return access, new_raw
 
 
-async def logout(session: AsyncSession, raw_token: str) -> None:
+async def logout(session: AsyncSession, caller: User, raw_token: str) -> None:
     await session.execute(
         sa.update(RefreshToken)
         .where(
             RefreshToken.token_hash == security.hash_token(raw_token),
+            RefreshToken.user_id == caller.id,  # you may only end your own session
             RefreshToken.revoked_at.is_(None),
         )
         .values(revoked_at=_now())
@@ -322,6 +373,7 @@ async def update_user(
         target.is_active = body.is_active
         if not body.is_active:
             await _revoke_all_refresh(session, target.id)
+            await _release_assigned_tickets(session, target.id)
     target.updated_at = _now()
     user_out = await to_user_out(session, target)
     await session.commit()
@@ -333,4 +385,5 @@ async def deactivate_user(session: AsyncSession, user_id: uuid.UUID) -> None:
     target.is_active = False
     target.updated_at = _now()
     await _revoke_all_refresh(session, target.id)
+    await _release_assigned_tickets(session, target.id)
     await session.commit()

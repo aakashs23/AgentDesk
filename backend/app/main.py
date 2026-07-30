@@ -10,6 +10,8 @@ import logging
 import time
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -81,6 +83,22 @@ async def log_requests(request: Request, call_next):
         },
     )
     return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    # Identical to FastAPI's default, except that a body nested deeply enough to
+    # exhaust the recursion limit blows up *inside* the default handler while it
+    # encodes the offending value back under `input` — turning a 422 into a 500.
+    # Only that case loses `input`; every ordinary error keeps it.
+    errors = exc.errors()
+    try:
+        detail = jsonable_encoder(errors)
+    except RecursionError:
+        detail = jsonable_encoder([{k: v for k, v in e.items() if k != "input"} for e in errors])
+    return JSONResponse(status_code=422, content={"detail": detail})
 
 
 @app.exception_handler(Exception)

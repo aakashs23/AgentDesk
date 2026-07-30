@@ -115,6 +115,8 @@ All primary keys are `uuid`, generated via `gen_random_uuid()` (`pgcrypto`). All
 | created_at | timestamptz | not null | |
 | updated_at | timestamptz | nullable | set only if edited |
 
+**Comments are hard-deleted, deliberately.** There is no `deleted_at` here, unlike `attachments`. Deleting a comment issues a real `DELETE`: the row goes, its `comment_mentions` cascade away, and its attachments are unlinked to `comment_id = NULL` rather than removed. The surviving record is the `audit_logs` row, which stores the full body in `before_state` — so the trail is preserved in one table instead of two. This is the trade: an author who deletes a comment gets it out of every read path (thread, search, mention lists) with no `WHERE deleted_at IS NULL` on any of them, and the body remains recoverable by anyone with audit-log access. Reinstating a deleted comment is not a supported operation.
+
 **Table: `comment_mentions`**
 | Column | Type | Constraints | Notes |
 |---|---|---|---|

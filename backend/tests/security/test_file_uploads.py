@@ -72,8 +72,8 @@ def test_traversal_filenames_cannot_escape_the_storage_directory(
 
 def test_a_traversal_filename_does_not_overwrite_an_existing_file(client, tmp_path, tokens, ticket):
     """Two uploads named the same thing must not collide — the id prefixes them."""
-    first = _upload(client, tokens["requester"], ticket["id"], "same.png", b"first" + PNG)
-    second = _upload(client, tokens["requester"], ticket["id"], "same.png", b"second" + PNG)
+    first = _upload(client, tokens["requester"], ticket["id"], "same.png", PNG + b"first")
+    second = _upload(client, tokens["requester"], ticket["id"], "same.png", PNG + b"second")
     assert_status(first, 201)
     assert_status(second, 201)
     assert first.json()["id"] != second.json()["id"]
@@ -83,7 +83,7 @@ def test_a_traversal_filename_does_not_overwrite_an_existing_file(client, tmp_pa
             f"{API}/attachments/{response.json()['id']}", headers=auth(tokens["requester"])
         )
         assert_status(downloaded, 200)
-        assert downloaded.content.startswith(marker), "one upload clobbered the other"
+        assert downloaded.content.endswith(marker), "one upload clobbered the other"
 
 
 @pytest.mark.parametrize("filename", ["", ".", "..", "/", "//", "..."])
@@ -114,16 +114,20 @@ def test_disallowed_mime_types_are_rejected(client, tokens, ticket, mime):
 
 
 @pytest.mark.parametrize(
-    "mime",
+    ("mime", "content"),
     [
-        "image/png",
-        "image/jpeg",
-        "application/pdf",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ("image/png", PNG),
+        ("image/jpeg", b"\xff\xd8\xff" + b"\x00" * 64),
+        ("application/pdf", b"%PDF-1.7" + b"\x00" * 64),
+        (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            b"PK\x03\x04" + b"\x00" * 64,
+        ),
     ],
 )
-def test_documented_mime_types_are_accepted(client, tokens, ticket, mime):
-    response = _upload(client, tokens["requester"], ticket["id"], "doc.bin", PNG, mime)
+def test_documented_mime_types_are_accepted(client, tokens, ticket, mime, content):
+    """Content must match the declared type — the allow-list is on real bytes."""
+    response = _upload(client, tokens["requester"], ticket["id"], "doc.bin", content, mime)
     assert_status(response, 201, f"mime={mime}")
 
 
@@ -143,7 +147,9 @@ def test_an_upload_over_the_cap_is_rejected_and_stores_nothing(client, db, token
 
 def test_an_upload_at_exactly_the_cap_is_accepted(client, tokens, ticket):
     limit = get_settings().attachment_max_bytes
-    response = _upload(client, tokens["requester"], ticket["id"], "exact.png", b"\x00" * limit)
+    response = _upload(
+        client, tokens["requester"], ticket["id"], "exact.png", b"\x89PNG" + b"\x00" * (limit - 4)
+    )
     assert_status(response, 201, "upload of exactly the limit")
 
 

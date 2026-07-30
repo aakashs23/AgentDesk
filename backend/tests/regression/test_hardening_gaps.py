@@ -11,7 +11,9 @@ import sqlalchemy as sa
 from tests.helpers import factories as f
 from tests.helpers.auth import API, auth
 
-pytestmark = pytest.mark.xfail(strict=True, reason="confirmed gap — see TEST_REPORT.md")
+# Every Medium and Low gap in this file is fixed (BUG-20 resolved as a schema
+# decision — see Doc 05). What is left open is the two Informational items.
+open_gap = pytest.mark.xfail(strict=True, reason="confirmed gap — see TEST_REPORT.md")
 
 
 def test_an_uploaded_files_declared_mime_type_is_verified_against_its_bytes(client, tokens):
@@ -155,6 +157,7 @@ def test_a_webhook_target_cannot_point_at_a_link_local_address(client, tokens):
     )
 
 
+@open_gap
 def test_an_unknown_status_filter_is_rejected_rather_than_silently_empty(client, tokens):
     """BUG-18 (Informational): `GET /tickets?status=nonsense` returns 200 [].
 
@@ -175,6 +178,7 @@ def test_an_unknown_status_filter_is_rejected_rather_than_silently_empty(client,
     )
 
 
+@open_gap
 def test_the_in_memory_report_store_does_not_grow_without_bound(client, tokens):
     """BUG-19 (Informational): generated reports are never evicted.
 
@@ -202,25 +206,19 @@ def test_the_in_memory_report_store_does_not_grow_without_bound(client, tokens):
     assert growth < 25, f"the report store grew by {growth} with no eviction"
 
 
-def test_deleting_a_comment_leaves_the_ticket_trail_intact(client, db, tokens):
-    """BUG-20 (Low): comment deletion is a hard DELETE, not a soft one.
+def test_deleting_a_comment_leaves_the_body_in_the_audit_trail(client, db, tokens):
+    """BUG-20 (Low): resolved as a schema decision — hard deletion is intended.
 
-    `delete_comment` writes an audit row (including the body) and then issues a
-    real `session.delete`. Attachments are unlinked to `comment_id = NULL` and
-    mentions are removed outright, so `comment_mentions` loses the record that a
-    user was ever notified.
-
-    Every other destructive path in the system soft-deletes to preserve the
-    trail — `attachments.deleted_at` exists for exactly this reason. Doc 05 has
-    no `deleted_at` on `comments`, so the schema invariant forbids adding one;
-    the gap is worth recording as a schema question rather than a code fix.
-
-    Fix: raise with the schema owner — either add `comments.deleted_at` to
-    Doc 05, or accept hard deletion and document that the audit row is the only
-    surviving record.
+    Comments are the one destructive path that does not soft-delete;
+    `attachments.deleted_at` exists, `comments.deleted_at` deliberately does not
+    (Doc 05, `comments`). The row goes for real, and the `audit_logs` row is the
+    surviving record — so what has to hold is that the body is *in* that row.
+    If someone ever "tidies" `before_state` out of `delete_comment`, the delete
+    becomes unrecoverable and this fails.
     """
     ticket = f.make_ticket(client, tokens["requester"])
-    created = f.comment(client, tokens["requester"], ticket["id"], f"to delete {f.rand()}")
+    body = f"to delete {f.rand()}"
+    created = f.comment(client, tokens["requester"], ticket["id"], body)
     comment_id = created.json()["id"]
 
     assert (
@@ -229,10 +227,20 @@ def test_deleting_a_comment_leaves_the_ticket_trail_intact(client, db, tokens):
     )
 
     with db.connect() as conn:
-        row = conn.execute(
-            sa.text("SELECT count(*) FROM comments WHERE id = :c"), {"c": comment_id}
+        assert (
+            conn.execute(
+                sa.text("SELECT count(*) FROM comments WHERE id = :c"), {"c": comment_id}
+            ).scalar_one()
+            == 0
+        ), "the comment row survived a delete Doc 05 documents as hard"
+        audited = conn.execute(
+            sa.text(
+                "SELECT before_state->>'body' FROM audit_logs "
+                "WHERE entity_type = 'comment' AND entity_id = :c AND action = 'deleted'"
+            ),
+            {"c": comment_id},
         ).scalar_one()
-    assert row == 1, "the comment row was hard-deleted rather than soft-deleted"
+    assert audited == body, "the audit row is the only surviving copy and it lost the body"
 
 
 def test_the_notify_actions_message_reaches_the_recipient(client, db, tokens, user_ids):

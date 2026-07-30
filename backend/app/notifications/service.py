@@ -55,15 +55,21 @@ async def notify(
     trigger_type: str,
     subject: str,
     message: str,
+    override_template: bool = False,
 ) -> None:
-    """Fan out one event to every channel the recipient has enabled for it."""
+    """Fan out one event to every channel the recipient has enabled for it.
+
+    `subject`/`message` are a fallback the active template wins over — except
+    with `override_template`, for copy a human wrote for this one event (an
+    automation rule's message) which a generic template would otherwise discard.
+    """
     user = await session.get(User, user_id)
     if user is None:
         return
     ticket = await session.get(Ticket, ticket_id) if ticket_id else None
     for channel in channels_for(user, trigger_type):
         template = await _active_template(session, trigger_type, channel)
-        if template:
+        if template and not override_template:
             rendered_subject = (
                 templates.render(template.subject_template, ticket, user)
                 if template.subject_template

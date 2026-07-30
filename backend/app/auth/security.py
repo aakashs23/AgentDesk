@@ -20,12 +20,21 @@ INVITE_TOKEN_DAYS = 7
 _ALGORITHM = "HS256"
 
 
+MAX_PASSWORD_BYTES = 72  # bcrypt's own limit; >= 4.1 raises instead of truncating
+
+
+def _bcrypt_bytes(password: str) -> bytes:
+    # Schemas reject longer passwords with a 422, but login and any future caller
+    # reach the hasher directly — truncate here so no path can raise a ValueError.
+    return password.encode()[:MAX_PASSWORD_BYTES]
+
+
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    return bcrypt.hashpw(_bcrypt_bytes(password), bcrypt.gensalt()).decode()
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return bcrypt.checkpw(password.encode(), password_hash.encode())
+    return bcrypt.checkpw(_bcrypt_bytes(password), password_hash.encode())
 
 
 def new_raw_token() -> str:

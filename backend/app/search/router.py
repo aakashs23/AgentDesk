@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict
 from app.auth.deps import CurrentUser, SessionDep, role_name
 from app.models import SavedView
 from app.search import service
+from app.validators import BoundedJson, SafeText
 
 router = APIRouter(tags=["search"])
 
@@ -52,7 +53,7 @@ class SearchResults(BaseModel):
 async def search(
     caller: CurrentUser,
     session: SessionDep,
-    q: Annotated[str, Query(min_length=1)],
+    q: Annotated[SafeText, Query(min_length=1)],
     status: str | None = None,
     priority_id: uuid.UUID | None = None,
     category_id: uuid.UUID | None = None,
@@ -95,13 +96,13 @@ async def search(
 
 
 class SavedViewIn(BaseModel):
-    name: str
-    filters: dict
+    name: SafeText
+    filters: BoundedJson
 
 
 class SavedViewPatch(BaseModel):
-    name: str | None = None
-    filters: dict | None = None
+    name: SafeText | None = None
+    filters: BoundedJson | None = None
 
 
 class SavedViewOut(BaseModel):

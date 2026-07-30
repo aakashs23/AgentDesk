@@ -14,7 +14,7 @@ from app.audit import service as audit
 from app.auth.deps import SessionDep, require_role
 from app.models import AutomationExecutionLog, AutomationRule, Ticket, User
 from app.tickets.schemas import TicketOut
-from app.workflow.automation import CONDITION_FIELDS, TRIGGERS, matches
+from app.workflow.automation import ACTION_TYPES, CONDITION_FIELDS, TRIGGERS, matches
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -71,7 +71,9 @@ class PreviewIn(BaseModel):
     conditions: list[dict] = []
 
 
-def _validate_rule(trigger_type: str | None, conditions: list | None) -> None:
+def _validate_rule(
+    trigger_type: str | None, conditions: list | None, actions: list | None = None
+) -> None:
     if trigger_type is not None and trigger_type not in TRIGGERS:
         raise HTTPException(status_code=422, detail=f"Unknown trigger_type: {trigger_type}")
     for cond in conditions or []:
@@ -79,6 +81,11 @@ def _validate_rule(trigger_type: str | None, conditions: list | None) -> None:
             raise HTTPException(
                 status_code=422, detail=f"Unknown condition field: {cond.get('field')}"
             )
+    # Unvalidated, a typo only surfaces as a failed execution per matching ticket,
+    # forever — and the rule can no longer be deleted once it has history.
+    for act in actions or []:
+        if act.get("type") not in ACTION_TYPES:
+            raise HTTPException(status_code=422, detail=f"Unknown action type: {act.get('type')}")
 
 
 async def _get_rule(session, rule_id: uuid.UUID) -> AutomationRule:
@@ -98,7 +105,7 @@ async def list_rules(caller: AdminUser, session: SessionDep) -> list[RuleOut]:
 
 @router.post("/automation-rules", status_code=201)
 async def create_rule(body: RuleIn, caller: AdminUser, session: SessionDep) -> RuleOut:
-    _validate_rule(body.trigger_type, body.conditions)
+    _validate_rule(body.trigger_type, body.conditions, body.actions)
     rule = AutomationRule(**body.model_dump(), created_by=caller.id)
     session.add(rule)
     await session.flush()
@@ -120,7 +127,7 @@ async def update_rule(
 ) -> RuleOut:
     rule = await _get_rule(session, rule_id)
     changes = body.model_dump(exclude_unset=True)
-    _validate_rule(changes.get("trigger_type"), changes.get("conditions"))
+    _validate_rule(changes.get("trigger_type"), changes.get("conditions"), changes.get("actions"))
     before = {k: getattr(rule, k) for k in changes if not isinstance(getattr(rule, k), list)}
     for key, value in changes.items():
         setattr(rule, key, value)
