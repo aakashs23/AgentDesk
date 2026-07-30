@@ -58,6 +58,23 @@
   /* Elevation: hairline for dense views, soft shadow for overlays only. */
   --shadow-elevated: 0 10px 30px -10px rgb(0 0 0 / 0.35);
   --shadow-glow: 0 0 40px -8px rgb(79 124 255 / 0.45);
+
+  /* Avatar-initial fills — the rotating blues/violets/teals set Doc 04 sanctions
+     for assignee chips. Not general-purpose colors; only <Avatar> may use them. */
+  --color-avatar-1: #4f7cff;
+  --color-avatar-2: #8b5cf6;
+  --color-avatar-3: #2dd4bf;
+  --color-avatar-4: #6366f1;
+  --color-avatar-5: #0ea5e9;
+
+  /* Animation timing table, Doc 04 "Animation Timing". Nothing exceeds 300ms. */
+  --duration-micro: 150ms;
+  --duration-button: 180ms;
+  --duration-card: 200ms;
+  --duration-dropdown: 180ms;
+  --duration-modal: 220ms;
+  --duration-drawer: 250ms;
+  --duration-page: 250ms;
 }
 
 /* Dark mode is opt-in per surface (`<html class="dark">` or a wrapper),
@@ -73,6 +90,89 @@
   --color-muted: #9a9aa5;
 }
 
+@utility text-gradient {
+  background-image: linear-gradient(90deg, var(--color-brand-start), var(--color-brand-end));
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- Loading states (Doc 04, "Loading States") ------------------------------
+   Two visually distinct treatments, deliberately: `skeleton` means "data is
+   loading", `ai-shimmer` means "the model is thinking". */
+
+@utility skeleton {
+  background-color: var(--color-surface);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@utility ai-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Brand gradient at low opacity sweeping across — the "AI is working" signal. */
+.ai-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-brand-start) 22%, transparent),
+    color-mix(in srgb, var(--color-brand-end) 22%, transparent),
+    transparent
+  );
+  animation: ai-sweep 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes ai-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Entrances. Elements animate once on first paint, never on re-render — which
+   is enforced by only ever putting these on mount, not on state change. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @layer base {
   body {
     background-color: var(--color-canvas);
@@ -81,10 +181,17 @@
     font-size: var(--text-body);
     -webkit-font-smoothing: antialiased;
   }
-}
 
-@utility text-gradient {
-  background-image: linear-gradient(90deg, var(--color-brand-start), var(--color-brand-end));
-  background-clip: text;
-  color: transparent;
+  /* Doc 04: nothing in the product is load-bearing on motion, so reduced-motion
+     kills every animation and transition outright rather than tuning each one. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }

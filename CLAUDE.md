@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–6 done (scaffolding, schema/migrations, app shell, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines). Next is Phase 7 (Notifications & Webhooks) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
+Phases 0–9 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation). Next is Phase 10 (Customer Portal) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
+
+Phase 9 built the shell, not the screens: `frontend/src/components` (base library + the AI-signature set), `frontend/src/shell` (top bar, role sidebar, bottom tabs, Cmd+K palette), `frontend/src/lib` (API client with single-flight token refresh, session store, theme). Every route under `/portal`, `/agent`, and `/admin` currently renders `pages/Placeholder.tsx` — Phases 10–12 replace them one at a time, leaving the routing and guards in `src/routes/` alone. Routing is `react-router` v7, added in Phase 9 (the only new frontend dependency).
 
 Phase 5 resolved decisions (user-chosen, do not re-open silently): LLM = Gemini 2.5 Flash, embeddings = `gemini-embedding-001` at 1536 dims (matches migration 0001's `vector(1536)`), classifier = DistilBERT fine-tuned on synthetic seed data (`scripts/train_classifier.py` → `ml_models/classifier`, gitignored). `GEMINI_API_KEY` in `.env` gates the pipeline; without it ticket creation still works and the pipeline logs a skip. Still open: vector store beyond pgvector, final SLA thresholds, hosting target.
 
@@ -17,6 +19,7 @@ cd backend && .venv/bin/fastapi dev app/main.py   # serve
 cd backend && .venv/bin/pytest                    # tests (single: pytest tests/test_health.py::test_health)
 cd backend && .venv/bin/ruff check . && .venv/bin/ruff format .
 cd frontend && npm run dev | npm run build | npm run lint | npm run format
+cd frontend && npm run selfcheck                  # assertions on the shell's pure logic (no test framework)
 docker compose up                                 # backend + frontend + postgres
 ```
 
@@ -59,6 +62,8 @@ Ticket creation persists first, then hands off to a LangGraph graph: PII redacti
 - **Reopen starts a new resolution-timer segment** — it does not resume the original clock. `on_hold` pauses/resumes; first agent reply stops the response timer.
 - **Human-in-the-loop is mandatory in the prototype**: low-confidence classifications route to manual categorization instead of auto-assignment, and every AI-drafted response needs explicit agent approval before sending. Auto-send is out of scope.
 - **Schema matches Document 05 exactly** — no added, dropped, or renamed columns, FKs, or indexes.
+- **Design tokens live only in `frontend/src/index.css`.** No component invents a colour, radius, shadow, type size, or spacing value. Note the spacing scale is keyed in pixels (`p-16` is 16px), so any Tailwind utility that reads the spacing namespace with a non-token number (`size-8`, `max-w-120`) will resolve to something surprising — write those as explicit `[32px]` values.
+- **The brand gradient means "the AI produced this"** — Doc 04's Signature Element. The only non-AI exceptions are the primary CTA, the active nav indicator, and the Login hero.
 
 ## Open decisions (do not silently pick one)
 
