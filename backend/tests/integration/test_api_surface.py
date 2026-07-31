@@ -25,6 +25,7 @@ EXPECTED_ROUTES = {
     ("POST", "/api/v1/auth/password-reset/request"),
     ("POST", "/api/v1/auth/password-reset/confirm"),
     ("POST", "/api/v1/auth/verify-email"),
+    ("POST", "/api/v1/auth/password-change"),
     ("GET", "/api/v1/users"),
     ("POST", "/api/v1/users"),
     ("GET", "/api/v1/users/{user_id}"),
@@ -46,11 +47,19 @@ EXPECTED_ROUTES = {
     ("PATCH", "/api/v1/comments/{comment_id}"),
     ("DELETE", "/api/v1/comments/{comment_id}"),
     ("POST", "/api/v1/tickets/{ticket_id}/attachments"),
+    ("GET", "/api/v1/tickets/{ticket_id}/attachments"),
     ("GET", "/api/v1/attachments/{attachment_id}"),
     ("DELETE", "/api/v1/attachments/{attachment_id}"),
     ("GET", "/api/v1/tags"),
     ("POST", "/api/v1/tags"),
     ("POST", "/api/v1/tickets/{ticket_id}/tags"),
+    # Phase 10 — the Customer Portal's read surface plus CSAT
+    ("GET", "/api/v1/categories"),
+    ("GET", "/api/v1/priorities"),
+    ("GET", "/api/v1/knowledge-base/articles"),
+    ("GET", "/api/v1/knowledge-base/articles/{article_id}"),
+    ("GET", "/api/v1/csat"),
+    ("POST", "/api/v1/csat"),
     ("GET", "/api/v1/tickets/{ticket_id}/ai"),
     ("POST", "/api/v1/ai/drafts/{draft_id}/review"),
     ("POST", "/api/v1/tickets/{ticket_id}/classification/confirm"),
@@ -125,21 +134,22 @@ def test_every_feature_route_is_under_the_versioned_prefix(client):
 
 # --- Endpoints the verification brief expected but which do not exist ---
 
+# Phase 10 filled several of these in for the Customer Portal — the read side of
+# categories/priorities/knowledge base, all of CSAT, and authenticated password
+# change. They are covered properly in test_portal_api.py now. What remains here
+# is the *write* half (admin configuration, Phase 12) plus genuinely unbuilt
+# features.
 MISSING_ENDPOINTS = {
     "audit log read API": [("GET", "/audit-logs")],
-    "category CRUD": [("GET", "/categories"), ("POST", "/categories")],
-    "priority CRUD": [("GET", "/priorities"), ("POST", "/priorities")],
+    "category write API": [("POST", "/categories")],
+    "priority write API": [("POST", "/priorities")],
     "queue CRUD": [("GET", "/queues"), ("POST", "/queues")],
     "team CRUD": [("GET", "/teams"), ("POST", "/teams")],
     "SLA policy CRUD": [("GET", "/sla-policies"), ("POST", "/sla-policies")],
-    "knowledge base CRUD": [
-        ("GET", "/knowledge-base/articles"),
-        ("POST", "/knowledge-base/articles"),
-    ],
+    "knowledge base write API": [("POST", "/knowledge-base/articles")],
     "application settings": [("GET", "/settings"), ("PATCH", "/settings")],
     "bulk ticket operations": [("POST", "/tickets/bulk")],
     "ticket deletion": [("DELETE", "/tickets")],
-    "CSAT responses": [("GET", "/csat"), ("POST", "/csat")],
     "OCR on attachments": [("POST", "/attachments/ocr")],
 }
 
@@ -159,15 +169,8 @@ def test_unimplemented_feature_is_still_absent(client, tokens, feature, method, 
     )
 
 
-def test_the_csat_table_exists_but_has_no_api(db):
-    """Doc 05 defines `csat_responses` and migration 0001 creates it, but no
-    module reads or writes it — schema without a feature."""
-    import sqlalchemy as sa
-
-    with db.connect() as conn:
-        assert conn.execute(sa.text("SELECT to_regclass('public.csat_responses')")).scalar()
-        rows = conn.execute(sa.text("SELECT count(*) FROM csat_responses")).scalar_one()
-    assert rows == 0, "something is writing csat_responses — it should have an API and tests"
+# `csat_responses` used to be listed here as schema-without-a-feature. Phase 10
+# gave it an API for the Customer Portal's survey modal; see test_portal_api.py.
 
 
 def test_the_conversation_history_table_exists_but_has_no_api(db):

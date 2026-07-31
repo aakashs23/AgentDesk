@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router'
 
 import { useDialog } from '../components/useDialog'
 import { api } from '../lib/api'
+import { useDebounced } from '../lib/hooks'
 import { cn, formatTicketId } from '../lib/ui'
 import { navFor } from './nav'
 import type { Role } from '../lib/session'
@@ -14,15 +15,6 @@ interface TicketHit {
   id: string
   display_id: number | null
   subject: string
-}
-
-function useDebounced<T>(value: T, ms = 250) {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms)
-    return () => clearTimeout(timer)
-  }, [value, ms])
-  return debounced
 }
 
 export interface CommandPaletteProps {

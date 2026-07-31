@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { ApiError } from '../lib/api'
 import { HOME_BY_ROLE, login, useUser } from '../lib/auth'
+import { cn, focusRing } from '../lib/ui'
 
 export function Login() {
   const user = useUser()
@@ -85,6 +86,24 @@ export function Login() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
+
+        <div className="text-body-sm text-muted mt-24 flex flex-col gap-8">
+          <Link
+            to="/forgot-password"
+            className={cn('text-brand-start font-medium underline underline-offset-4', focusRing)}
+          >
+            Forgot your password?
+          </Link>
+          <span>
+            New here?{' '}
+            <Link
+              to="/signup"
+              className={cn('text-brand-start font-medium underline underline-offset-4', focusRing)}
+            >
+              Create an account
+            </Link>
+          </span>
+        </div>
       </div>
     </div>
   )

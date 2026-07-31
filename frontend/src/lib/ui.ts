@@ -48,6 +48,59 @@ export function formatTicketId(displayId: number | null | undefined) {
   return displayId === null || displayId === undefined ? '' : `AGT-${displayId}`
 }
 
+/**
+ * Doc 04 forbids conveying status by colour alone, so every status renders as a
+ * text label; this just supplies the human-readable form of the DB value.
+ */
+export const STATUS_LABELS: Record<string, string> = {
+  new: 'New',
+  open: 'Open',
+  in_progress: 'In Progress',
+  on_hold: 'On Hold',
+  resolved: 'Resolved',
+  closed: 'Closed',
+  reopened: 'Reopened',
+}
+
+export function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status
+}
+
+// Descending units with the divisor that carries into the next one up.
+const TIME_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['second', 60],
+  ['minute', 60],
+  ['hour', 24],
+  ['day', 7],
+  ['week', 4.35],
+  ['month', 12],
+  ['year', Number.POSITIVE_INFINITY],
+]
+
+/** Compact relative time for ticket rows and activity ("3 hours ago"). */
+export function relativeTime(iso: string, now = Date.now()) {
+  const format = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+  let value = (new Date(iso).getTime() - now) / 1000
+  for (const [unit, step] of TIME_UNITS) {
+    if (Math.abs(value) < step) return format.format(Math.round(value), unit)
+    value /= step
+  }
+  return format.format(Math.round(value), 'year')
+}
+
+/** Human-readable file size for the attachment list. */
+export function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  const units = ['KB', 'MB', 'GB']
+  let value = bytes / 1024
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit++
+  }
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`
+}
+
 export function initials(fullName: string) {
   const parts = fullName.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return '?'

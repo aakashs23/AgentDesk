@@ -208,6 +208,15 @@ async def add_attachment(
     return schemas.AttachmentOut.model_validate(attachment)
 
 
+@router.get("/tickets/{ticket_id}/attachments")
+async def list_attachments(
+    ticket_id: uuid.UUID, caller: CurrentUser, session: SessionDep
+) -> list[schemas.AttachmentOut]:
+    role = await _role(session, caller)
+    attachments = await service.list_attachments(session, caller, role, ticket_id)
+    return [schemas.AttachmentOut.model_validate(a) for a in attachments]
+
+
 @router.get("/attachments/{attachment_id}")
 async def download_attachment(
     attachment_id: uuid.UUID, caller: CurrentUser, session: SessionDep

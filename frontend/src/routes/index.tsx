@@ -3,6 +3,13 @@ import { Navigate, Route, Routes } from 'react-router'
 import { HOME_BY_ROLE, useUser } from '../lib/auth'
 import { Login } from '../pages/Login'
 import { Placeholder } from '../pages/Placeholder'
+import { ForgotPassword, ResetPassword, SignUp, VerifyEmail } from '../pages/SignUp'
+import { AccountSettings } from '../pages/portal/AccountSettings'
+import { KbArticleDetail, KnowledgeBaseSearch } from '../pages/portal/KnowledgeBase'
+import { MyTickets } from '../pages/portal/MyTickets'
+import { NewTicket } from '../pages/portal/NewTicket'
+import { Notifications } from '../pages/portal/Notifications'
+import { TicketDetail } from '../pages/portal/TicketDetail'
 import { AppShell } from '../shell/AppShell'
 import { RequireAuth } from './RequireAuth'
 
@@ -19,36 +26,24 @@ function RoleHome() {
 export function AppRoutes() {
   return (
     <Routes>
+      {/* First-touch surfaces — light-themed, outside the app shell. */}
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Customer Portal — light-first, bottom tab bar on mobile. Admins are
           allowed in too: Doc 03 §9 gives them every surface for support. */}
       <Route element={<RequireAuth roles={['requester', 'admin']} />}>
         <Route element={<AppShell basePath="/portal" searchPlaceholder="Search your tickets…" />}>
-          <Route
-            path="/portal/tickets"
-            element={<Placeholder title="My Tickets" phase="Phase 10" />}
-          />
-          <Route
-            path="/portal/tickets/new"
-            element={<Placeholder title="New Ticket" phase="Phase 10" />}
-          />
-          <Route
-            path="/portal/tickets/:ticketId"
-            element={<Placeholder title="Ticket Detail" phase="Phase 10" />}
-          />
-          <Route
-            path="/portal/kb"
-            element={<Placeholder title="Knowledge Base" phase="Phase 10" />}
-          />
-          <Route
-            path="/portal/notifications"
-            element={<Placeholder title="Notifications" phase="Phase 10" />}
-          />
-          <Route
-            path="/portal/settings"
-            element={<Placeholder title="Account Settings" phase="Phase 10" />}
-          />
+          <Route path="/portal/tickets" element={<MyTickets />} />
+          <Route path="/portal/tickets/new" element={<NewTicket />} />
+          <Route path="/portal/tickets/:ticketId" element={<TicketDetail />} />
+          <Route path="/portal/kb" element={<KnowledgeBaseSearch />} />
+          <Route path="/portal/kb/:articleId" element={<KbArticleDetail />} />
+          <Route path="/portal/notifications" element={<Notifications />} />
+          <Route path="/portal/settings" element={<AccountSettings />} />
         </Route>
       </Route>
 

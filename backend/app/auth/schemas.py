@@ -64,6 +64,14 @@ class VerifyEmailRequest(BaseModel):
     token: str
 
 
+class PasswordChangeRequest(BaseModel):
+    """Authenticated change from Account Settings — proves ownership with the
+    current password instead of an emailed reset token."""
+
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=MAX_PASSWORD_BYTES)
+
+
 class UserCreate(BaseModel):
     """Admin-provisioned account (invite flow, App Flow Doc 03 §24)."""
 

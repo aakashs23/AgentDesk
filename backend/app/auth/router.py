@@ -65,3 +65,11 @@ async def password_reset_confirm(
 async def verify_email(body: schemas.VerifyEmailRequest, session: SessionDep) -> dict[str, str]:
     await service.verify_email(session, body.token)
     return {"detail": "Email verified"}
+
+
+@router.post("/password-change")
+async def password_change(
+    body: schemas.PasswordChangeRequest, caller: CurrentUser, session: SessionDep
+) -> dict[str, str]:
+    await service.change_password(session, caller, body.current_password, body.new_password)
+    return {"detail": "Password updated"}

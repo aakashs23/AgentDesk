@@ -17,16 +17,19 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.admin_config.router import router as admin_router
+from app.admin_config.taxonomy_router import router as taxonomy_router
 from app.ai.router import router as ai_router
 from app.auth.router import router as auth_router
 from app.auth.users_router import router as users_router
 from app.config import get_settings
 from app.db import engine
+from app.knowledge_base.router import router as kb_router
 from app.log import setup_logging
 from app.notifications.router import router as notifications_router
 from app.reporting.router import router as reporting_router
 from app.search.router import router as search_router
 from app.sla import monitor
+from app.tickets.csat_router import router as csat_router
 from app.tickets.router import router as tickets_router
 from app.webhooks.router import router as webhooks_router
 
@@ -52,8 +55,11 @@ app = FastAPI(title="AgentDesk API", lifespan=lifespan)
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(tickets_router, prefix="/api/v1")
+app.include_router(csat_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(taxonomy_router, prefix="/api/v1")
+app.include_router(kb_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(webhooks_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")

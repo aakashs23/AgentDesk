@@ -613,6 +613,28 @@ async def add_attachment(
     return attachment
 
 
+async def list_attachments(
+    session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID
+) -> list[Attachment]:
+    """A ticket's live attachments, for the Attachments tab (App Flow §2).
+
+    Soft-deleted and superseded versions are excluded: the tab shows what is
+    currently attached, not the upload history (`version` /
+    `replaced_by_attachment_id` keep that).
+    """
+    await get_ticket_scoped(session, caller, role, ticket_id)
+    query = (
+        sa.select(Attachment)
+        .where(
+            Attachment.ticket_id == ticket_id,
+            Attachment.deleted_at.is_(None),
+            Attachment.replaced_by_attachment_id.is_(None),
+        )
+        .order_by(Attachment.created_at)
+    )
+    return list((await session.execute(query)).scalars())
+
+
 async def get_attachment_file(
     session: AsyncSession, caller: User, role: str, attachment_id: uuid.UUID
 ) -> Attachment:
