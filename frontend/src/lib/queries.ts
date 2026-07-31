@@ -2,7 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocation } from 'react-router'
 
 import { api } from './api'
-import type { AiInsights, Category, DirectoryUser, Priority, Ticket } from './types'
+import type {
+  AiInsights,
+  Category,
+  DirectoryUser,
+  Priority,
+  Queue,
+  SlaRule,
+  Team,
+  Ticket,
+} from './types'
 
 /**
  * Shared reads. Taxonomy barely changes within a session, so it is cached hard
@@ -58,6 +67,49 @@ export function useStaffDirectory(enabled = true) {
       return users.filter((u) => u.is_active && u.role !== 'requester')
     },
     ...STATIC,
+  })
+}
+
+// --- Admin configuration reads (Phase 12) ----------------------------------
+
+/**
+ * Teams, queues and SLA rules are Admin-only reads (Doc 05 §6) and change about
+ * as often as the taxonomy, so they get the same hard cache. Every admin
+ * mutation invalidates its own key, which is what keeps that safe.
+ */
+export function useTeams(enabled = true) {
+  return useQuery({
+    queryKey: ['teams'],
+    enabled,
+    queryFn: () => api<Team[]>('/admin/teams'),
+    ...STATIC,
+  })
+}
+
+export function useQueues(enabled = true) {
+  return useQuery({
+    queryKey: ['queues'],
+    enabled,
+    queryFn: () => api<Queue[]>('/admin/queues'),
+    ...STATIC,
+  })
+}
+
+export function useSlaRules(enabled = true) {
+  return useQuery({
+    queryKey: ['sla-rules'],
+    enabled,
+    queryFn: () => api<SlaRule[]>('/admin/sla-rules'),
+  })
+}
+
+/** The whole org directory — deactivated accounts included, so they can be
+ *  reactivated (App Flow §24). Distinct from `useStaffDirectory`, which is
+ *  team-scoped and drops requesters. */
+export function useAllUsers() {
+  return useQuery({
+    queryKey: ['users', 'all'],
+    queryFn: () => api<DirectoryUser[]>('/users'),
   })
 }
 

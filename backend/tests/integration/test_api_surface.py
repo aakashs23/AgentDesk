@@ -61,6 +61,28 @@ EXPECTED_ROUTES = {
     # Phase 11 — the Agent Console's KB creation loop (App Flow §19)
     ("POST", "/api/v1/knowledge-base/articles"),
     ("PATCH", "/api/v1/knowledge-base/articles/{article_id}"),
+    # Phase 12 — Admin Dashboard configuration CRUD (TRD §3)
+    ("DELETE", "/api/v1/knowledge-base/articles/{article_id}"),
+    ("GET", "/api/v1/admin/teams"),
+    ("POST", "/api/v1/admin/teams"),
+    ("PATCH", "/api/v1/admin/teams/{team_id}"),
+    ("DELETE", "/api/v1/admin/teams/{team_id}"),
+    ("GET", "/api/v1/admin/queues"),
+    ("POST", "/api/v1/admin/queues"),
+    ("PATCH", "/api/v1/admin/queues/{queue_id}"),
+    ("DELETE", "/api/v1/admin/queues/{queue_id}"),
+    ("POST", "/api/v1/admin/categories"),
+    ("PATCH", "/api/v1/admin/categories/{category_id}"),
+    ("DELETE", "/api/v1/admin/categories/{category_id}"),
+    ("POST", "/api/v1/admin/priorities"),
+    ("PATCH", "/api/v1/admin/priorities/{priority_id}"),
+    ("DELETE", "/api/v1/admin/priorities/{priority_id}"),
+    ("GET", "/api/v1/admin/sla-rules"),
+    ("POST", "/api/v1/admin/sla-rules"),
+    ("PATCH", "/api/v1/admin/sla-rules/{rule_id}"),
+    ("DELETE", "/api/v1/admin/sla-rules/{rule_id}"),
+    ("GET", "/api/v1/admin/audit-logs"),
+    ("GET", "/api/v1/admin/audit-logs/entity-types"),
     ("GET", "/api/v1/csat"),
     ("POST", "/api/v1/csat"),
     ("GET", "/api/v1/tickets/{ticket_id}/ai"),
@@ -141,15 +163,14 @@ def test_every_feature_route_is_under_the_versioned_prefix(client):
 # categories/priorities/knowledge base, all of CSAT, and authenticated password
 # change. They are covered properly in test_portal_api.py now. Phase 11 added the
 # knowledge-base write half for App Flow §19's creation loop (test_agent_api.py).
-# What remains here is admin configuration (Phase 12) plus genuinely unbuilt
-# features.
+# Phase 12 added the whole admin configuration surface — teams, queues, category
+# and priority writes, SLA rules and the audit-log reader — under TRD §3's
+# `/admin/...` prefix rather than the bare paths guessed at here; see
+# test_admin_config.py. What is left is genuinely unbuilt.
 MISSING_ENDPOINTS = {
-    "audit log read API": [("GET", "/audit-logs")],
-    "category write API": [("POST", "/categories")],
-    "priority write API": [("POST", "/priorities")],
-    "queue CRUD": [("GET", "/queues"), ("POST", "/queues")],
-    "team CRUD": [("GET", "/teams"), ("POST", "/teams")],
-    "SLA policy CRUD": [("GET", "/sla-policies"), ("POST", "/sla-policies")],
+    # No settings/branding table exists in Doc 05 and the schema invariant
+    # forbids adding one, so `PATCH /admin/config` (TRD §3) stays unbuilt: the
+    # Admin's Templates & Branding screen edits notification templates only.
     "application settings": [("GET", "/settings"), ("PATCH", "/settings")],
     "bulk ticket operations": [("POST", "/tickets/bulk")],
     "ticket deletion": [("DELETE", "/tickets")],

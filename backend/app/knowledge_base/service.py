@@ -121,6 +121,25 @@ async def create_article(
     return article
 
 
+async def delete_article(session: AsyncSession, user: User, article_id: uuid.UUID) -> None:
+    """Admin-only hard delete (Phase 12). Nothing has an FK onto
+    `knowledge_base_articles` — the embedding is a column on the row itself — so
+    there is nothing to orphan, and the audit row survives the article."""
+    article = await session.get(KnowledgeBaseArticle, article_id)
+    if article is None:
+        raise HTTPException(status_code=404, detail="Article not found")
+    audit.log(
+        session,
+        "knowledge_base_article",
+        article.id,
+        user.id,
+        "deleted",
+        before={"title": article.title, "status": article.status},
+    )
+    await session.delete(article)
+    await session.commit()
+
+
 async def update_article(
     session: AsyncSession, user: User, role: str, article_id: uuid.UUID, changes: dict
 ) -> KnowledgeBaseArticle:

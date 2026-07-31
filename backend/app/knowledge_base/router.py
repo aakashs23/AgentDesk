@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.auth.deps import CurrentUser, SessionDep, require_role, role_name
@@ -91,6 +91,19 @@ async def create_article(body: ArticleCreate, caller: StaffUser, session: Sessio
             body.status,
         )
     )
+
+
+@router.delete("/articles/{article_id}", status_code=204)
+async def delete_article(
+    article_id: uuid.UUID,
+    caller: Annotated[User, Depends(require_role("admin"))],
+    session: SessionDep,
+) -> Response:
+    """Admin only — Doc 03 §1 gives Admin "full CRUD over KB articles across the
+    organization", and an author deleting their own published article would take
+    it out from under the suggestion pipeline without review."""
+    await service.delete_article(session, caller, article_id)
+    return Response(status_code=204)
 
 
 @router.patch("/articles/{article_id}")

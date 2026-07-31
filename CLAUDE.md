@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–11 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation, Customer Portal, Agent Console). Next is Phase 12 (Admin Dashboard) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
+Phases 0–12 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation, Customer Portal, Agent Console, Admin Dashboard). All three client surfaces are now built. Next is Phase 13 (Multi-Channel Intake) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
 
-Phase 9 built the shell: `frontend/src/components` (base library + the AI-signature set), `frontend/src/shell` (top bar, role sidebar, bottom tabs, Cmd+K palette), `frontend/src/lib` (API client with single-flight token refresh, session store, theme). Routing is `react-router` v7 — the only frontend dependency added since Phase 0. Only `/admin` still renders `pages/Placeholder.tsx`; Phase 12 replaces those, leaving `src/routes/` guards alone.
+Phase 9 built the shell: `frontend/src/components` (base library + the AI-signature set), `frontend/src/shell` (top bar, role sidebar, bottom tabs, Cmd+K palette), `frontend/src/lib` (API client with single-flight token refresh, session store, theme). Routing is `react-router` v7 — the only frontend dependency added since Phase 0. Every route now renders a real screen; `pages/Placeholder.tsx` is gone.
 
 Phase 10 shipped the Customer Portal (`frontend/src/pages/portal/`) **plus the backend it needed**, which earlier phases had never built: `GET /categories`, `GET /priorities` (`admin_config/taxonomy_router.py`), the knowledge-base read API (`knowledge_base/`), CSAT (`tickets/csat_router.py` + the `CsatResponse` model), `POST /auth/password-change`, and `GET /tickets/{id}/attachments`. Admin **write** access for categories/priorities/KB is still unbuilt and stays listed in `tests/integration/test_api_surface.py::MISSING_ENDPOINTS` — that dict plus `EXPECTED_ROUTES` pin the whole route table, so adding an endpoint means updating both.
 
@@ -23,6 +23,22 @@ Two spec tensions resolved in Phase 11, both documented at the code:
 - `ticket_status_history` is Team Lead+ (Doc 05 §6), so the History tab's activity feed is assembled client-side from what the caller may already read — a plain Agent sees comments, AI events and ticket timestamps, a Team Lead additionally sees status changes. Narrower, never broken.
 
 An agent's queue only shows tickets inside `scope_tickets_to_caller` — a brand-new ticket with no queue and no assignee is invisible to agents until the AI pipeline routes it. That is Phase 4 behaviour, not a queue bug; test against tickets the pipeline has already touched.
+
+Phase 12 shipped the Admin Dashboard (`frontend/src/pages/admin/`), with `frontend/src/lib/admin.ts` holding its pure logic (category-tree nesting, automation-rule validation, audit diffing, the §26 setup checklist) for `npm run selfcheck`. Backend additions, all in `admin_config/config_router.py` at TRD §3's paths:
+
+- `/admin/teams`, `/admin/queues`, `/admin/sla-rules` — full CRUD; `POST`/`PATCH`/`DELETE /admin/categories` and `/admin/priorities` (reads stay on the shared `/categories`, `/priorities`).
+- `GET /admin/audit-logs` (+ `/entity-types` for the filter dropdown) — read-only, because `audit_logs` is an immutable trail.
+- `DELETE /knowledge-base/articles/{id}`, Admin only, completing KB CRUD.
+- `ai_performance_trend` joined `reporting/service.py::GENERATORS` — the AI monitor's "over time" is a report type, not a new endpoint, so it inherits scoping, background generation and CSV/XLSX/PDF export.
+
+Two rules run through the config CRUD: **a delete never orphans** (a row still referenced by a ticket, another config row or AI history is a 409, not a cascade) and **every change is audited**, which is Doc 06's Phase 12 checkpoint. `tests/integration/test_admin_config.py` pins both.
+
+Deliberately not built in Phase 12, with reasons at the code:
+- **`PATCH /admin/config` / branding** (TRD §3, Doc 03 §1 "portal logo/theme"). Doc 05 defines no settings table and the schema invariant forbids adding one, so Templates & Branding edits notification templates and states the constraint instead. Still in `MISSING_ENDPOINTS`.
+- **Status editing.** Statuses are a fixed vocabulary compiled into the workflow engine (App Flow §10), not a table — the Ticket Configuration screen displays the machine rather than pretending to edit it.
+- **Tag deletion.** No endpoint, and `ticket_tags` has no cascade in Doc 05.
+
+Reuse Phase 12 leaned on rather than duplicating: `components/ReportRunner.tsx` (extracted from Phase 11's Team Reports) backs both Reports & Analytics and the AI monitor, and `/admin/kb` mounts the Agent Console's KB screens — the API already scopes an Admin to every draft and author, so it is the same screen asked by a different role. Those screens now read their prefix from `useSurfaceBase()`.
 
 Phase 5 resolved decisions (user-chosen, do not re-open silently): LLM = Gemini 2.5 Flash, embeddings = `gemini-embedding-001` at 1536 dims (matches migration 0001's `vector(1536)`), classifier = DistilBERT fine-tuned on synthetic seed data (`scripts/train_classifier.py` → `ml_models/classifier`, gitignored). `GEMINI_API_KEY` in `.env` gates the pipeline; without it ticket creation still works and the pipeline logs a skip. Still open: vector store beyond pgvector, final SLA thresholds, hosting target.
 

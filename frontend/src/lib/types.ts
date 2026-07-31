@@ -160,6 +160,112 @@ export interface CsatResponse {
   submitted_at: string
 }
 
+// --- Admin configuration (Phase 12) ----------------------------------------
+
+export interface Team {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface Queue {
+  id: string
+  name: string
+  team_id: string | null
+  created_at: string
+}
+
+export interface Tag {
+  id: string
+  name: string
+}
+
+/** `sla_policies` — the API calls them rules, the table calls them policies. */
+export interface SlaRule {
+  id: string
+  category_id: string | null
+  priority_id: string
+  response_minutes: number
+  resolution_minutes: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AutomationRule {
+  id: string
+  name: string
+  trigger_type: string
+  conditions: { field: string; op: string; value: string }[]
+  actions: { type: string; [key: string]: unknown }[]
+  priority: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface AutomationLog {
+  id: string
+  automation_rule_id: string
+  ticket_id: string | null
+  execution_status: 'success' | 'failed' | 'skipped'
+  execution_started_at: string
+  execution_completed_at: string | null
+  error_message: string | null
+  created_at: string
+}
+
+export interface NotificationTemplate {
+  id: string
+  trigger_type: string
+  channel: string
+  subject_template: string | null
+  body_template: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Webhook {
+  id: string
+  event_type: string
+  target_url: string
+  is_active: boolean
+  created_at: string
+  /** Returned once, by the create call only — never on a read. */
+  secret?: string
+}
+
+export interface WebhookDelivery {
+  id: string
+  webhook_id: string
+  event_type: string
+  response_status: number | null
+  attempt_count: number
+  delivered_at: string | null
+  created_at: string
+}
+
+export interface AuditLogEntry {
+  id: string
+  entity_type: string
+  entity_id: string
+  actor_id: string | null
+  action: string
+  before_state: Record<string, unknown> | null
+  after_state: Record<string, unknown> | null
+  created_at: string
+}
+
+/** A generated report, polled until it leaves `pending` (Doc 03 §23). */
+export interface ReportOut {
+  id: string
+  report_type: string
+  status: 'pending' | 'ready' | 'failed'
+  columns: string[]
+  rows: Record<string, unknown>[]
+  error: string | null
+}
+
 /** Per-trigger, per-channel notification preferences (Doc 05 users table). */
 export const NOTIFICATION_TRIGGERS = [
   'ticket_assigned',
