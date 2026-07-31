@@ -203,13 +203,14 @@ def test_admin_only_endpoints_reject_requester_and_agent(client):
         ]
         for response in attempts:
             assert response.status_code == 403, (role, response.request.url, response.text)
-    # GET /users is Admin/Team Lead only
+    # GET /users is staff-only: reading the team directory is what the Agent
+    # Console's assignment modal and @mention autocomplete are built on, while
+    # every *mutation* above stays Admin-only.
     requester = _login(client, SEED_USERS["requester"]).json()["access_token"]
-    agent = _login(client, SEED_USERS["agent"]).json()["access_token"]
     assert client.get(f"{API}/users", headers=_auth(requester)).status_code == 403
-    assert client.get(f"{API}/users", headers=_auth(agent)).status_code == 403
-    lead = _login(client, SEED_USERS["team_lead"]).json()["access_token"]
-    assert client.get(f"{API}/users", headers=_auth(lead)).status_code == 200
+    for role in ("agent", "team_lead"):
+        token = _login(client, SEED_USERS[role]).json()["access_token"]
+        assert client.get(f"{API}/users", headers=_auth(token)).status_code == 200
 
 
 def test_requester_profile_scope(client):

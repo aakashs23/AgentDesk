@@ -49,10 +49,24 @@ def test_admin_only_endpoints_reject_every_other_role(client, tokens, method, pa
     assert_forbidden(_call(client, method, path, tokens[role]), f"{role} {method} {path}")
 
 
-@pytest.mark.parametrize("role", ["requester", "agent"])
-def test_user_directory_is_closed_to_requesters_and_agents(client, tokens, role):
-    """GET /users is the one admin-area read a team lead also gets (Doc 05 §6)."""
-    assert_forbidden(client.get(f"{API}/users", headers=auth(tokens[role])), f"{role} GET /users")
+def test_user_directory_is_closed_to_requesters(client, tokens):
+    """A requester may read their own profile and nothing else (Doc 05 §6).
+
+    Staff all reach the directory: Phase 11's assignment modal and @mention
+    autocomplete need it, and an Agent's copy is scoped to their own team.
+    """
+    assert_forbidden(
+        client.get(f"{API}/users", headers=auth(tokens["requester"])), "requester GET /users"
+    )
+
+
+@pytest.mark.parametrize("role", ["agent", "team_lead"])
+def test_the_staff_directory_never_reaches_outside_the_callers_team(client, db, tokens, role):
+    """The relaxation is team-scoped, not a blanket read of every user."""
+    outsider = f.activated_user(client, db, tokens["admin"], "agent", team_id=f.make_team(db))
+    listed = client.get(f"{API}/users", headers=auth(tokens[role]))
+    assert_status(listed, 200, f"{role} GET /users")
+    assert outsider["id"] not in {u["id"] for u in listed.json()}
 
 
 @pytest.mark.parametrize("method,path", ADMIN_ONLY + STAFF_ONLY)

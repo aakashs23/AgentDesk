@@ -150,11 +150,21 @@ async def list_tickets(
     status: str | None,
     limit: int,
     offset: int,
+    assignee_id: uuid.UUID | None = None,
+    unassigned: bool = False,
 ) -> list[Ticket]:
+    """The Agent Console's queue tabs are this one query with a different filter:
+    My Tickets = assignee_id, Unassigned = unassigned, Team Queue = neither. The
+    caller's row scope (Doc 05 §6) always applies on top, so a filter can only
+    ever narrow what they were already allowed to see."""
     criterion = scope_tickets_to_caller(caller, role, Ticket, Queue, User)
     query = sa.select(Ticket).where(criterion)
     if status:
         query = query.where(Ticket.status == status)
+    if assignee_id is not None:
+        query = query.where(Ticket.assignee_id == assignee_id)
+    if unassigned:
+        query = query.where(Ticket.assignee_id.is_(None))
     query = query.order_by(Ticket.created_at.desc()).limit(limit).offset(offset)
     return list((await session.execute(query)).scalars())
 
@@ -611,6 +621,28 @@ async def add_attachment(
     )
     await session.commit()
     return attachment
+
+
+async def list_attachments(
+    session: AsyncSession, caller: User, role: str, ticket_id: uuid.UUID
+) -> list[Attachment]:
+    """A ticket's live attachments, for the Attachments tab (App Flow §2).
+
+    Soft-deleted and superseded versions are excluded: the tab shows what is
+    currently attached, not the upload history (`version` /
+    `replaced_by_attachment_id` keep that).
+    """
+    await get_ticket_scoped(session, caller, role, ticket_id)
+    query = (
+        sa.select(Attachment)
+        .where(
+            Attachment.ticket_id == ticket_id,
+            Attachment.deleted_at.is_(None),
+            Attachment.replaced_by_attachment_id.is_(None),
+        )
+        .order_by(Attachment.created_at)
+    )
+    return list((await session.execute(query)).scalars())
 
 
 async def get_attachment_file(

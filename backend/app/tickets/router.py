@@ -44,11 +44,15 @@ async def list_tickets(
     caller: CurrentUser,
     session: SessionDep,
     status: str | None = None,
+    assignee_id: uuid.UUID | None = None,
+    unassigned: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[schemas.TicketOut]:
     role = await _role(session, caller)
-    tickets = await service.list_tickets(session, caller, role, status, limit, offset)
+    tickets = await service.list_tickets(
+        session, caller, role, status, limit, offset, assignee_id, unassigned
+    )
     return [schemas.TicketOut.model_validate(t) for t in tickets]
 
 
@@ -206,6 +210,15 @@ async def add_attachment(
         session, caller, role, ticket_id, file, comment_id, replaces_attachment_id
     )
     return schemas.AttachmentOut.model_validate(attachment)
+
+
+@router.get("/tickets/{ticket_id}/attachments")
+async def list_attachments(
+    ticket_id: uuid.UUID, caller: CurrentUser, session: SessionDep
+) -> list[schemas.AttachmentOut]:
+    role = await _role(session, caller)
+    attachments = await service.list_attachments(session, caller, role, ticket_id)
+    return [schemas.AttachmentOut.model_validate(a) for a in attachments]
 
 
 @router.get("/attachments/{attachment_id}")

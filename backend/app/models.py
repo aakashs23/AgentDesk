@@ -289,6 +289,17 @@ class SavedView(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
 
 
+class CsatResponse(SQLModel, table=True):
+    __tablename__ = "csat_responses"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    # Unique: one response per ticket (Document 05, csat_responses table)
+    ticket_id: uuid.UUID = Field(foreign_key="tickets.id", unique=True)
+    rating: int
+    comment: str | None = None
+    submitted_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
 class Webhook(SQLModel, table=True):
     __tablename__ = "webhooks"
 

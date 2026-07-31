@@ -16,11 +16,16 @@ AdminUser = Annotated[User, Depends(require_role("admin"))]
 
 @router.get("")
 async def list_users(
-    caller: Annotated[User, Depends(require_role("admin", "team_lead"))],
+    caller: Annotated[User, Depends(require_role("admin", "team_lead", "agent"))],
     session: SessionDep,
     role: str | None = None,
     team_id: uuid.UUID | None = None,
 ) -> list[schemas.UserOut]:
+    """Doc 05 §6 gives an Agent read access to their own profile only, but Doc 06
+    Phase 11 requires the Agent Console's assignment modal and @mention
+    autocomplete — neither of which can exist without a colleague directory. An
+    Agent therefore reads the same team-scoped list a Team Lead does; nothing
+    outside their team, and no write access anywhere."""
     caller_role = await role_name(session, caller.role_id)
     return await service.list_users(session, caller, caller_role, role, team_id)
 

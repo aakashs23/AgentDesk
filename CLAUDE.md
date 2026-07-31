@@ -4,9 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–9 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation). Next is Phase 10 (Customer Portal) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
+Phases 0–11 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation, Customer Portal, Agent Console). Next is Phase 12 (Admin Dashboard) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
 
-Phase 9 built the shell, not the screens: `frontend/src/components` (base library + the AI-signature set), `frontend/src/shell` (top bar, role sidebar, bottom tabs, Cmd+K palette), `frontend/src/lib` (API client with single-flight token refresh, session store, theme). Every route under `/portal`, `/agent`, and `/admin` currently renders `pages/Placeholder.tsx` — Phases 10–12 replace them one at a time, leaving the routing and guards in `src/routes/` alone. Routing is `react-router` v7, added in Phase 9 (the only new frontend dependency).
+Phase 9 built the shell: `frontend/src/components` (base library + the AI-signature set), `frontend/src/shell` (top bar, role sidebar, bottom tabs, Cmd+K palette), `frontend/src/lib` (API client with single-flight token refresh, session store, theme). Routing is `react-router` v7 — the only frontend dependency added since Phase 0. Only `/admin` still renders `pages/Placeholder.tsx`; Phase 12 replaces those, leaving `src/routes/` guards alone.
+
+Phase 10 shipped the Customer Portal (`frontend/src/pages/portal/`) **plus the backend it needed**, which earlier phases had never built: `GET /categories`, `GET /priorities` (`admin_config/taxonomy_router.py`), the knowledge-base read API (`knowledge_base/`), CSAT (`tickets/csat_router.py` + the `CsatResponse` model), `POST /auth/password-change`, and `GET /tickets/{id}/attachments`. Admin **write** access for categories/priorities/KB is still unbuilt and stays listed in `tests/integration/test_api_surface.py::MISSING_ENDPOINTS` — that dict plus `EXPECTED_ROUTES` pin the whole route table, so adding an endpoint means updating both.
+
+Spec tension resolved in Phase 10: App Flow §1 lists Priority on the New Ticket form, but Doc 05 §6 makes priority a staff-only classification field and the AI pipeline assigns it. The form reports priority rather than asking for it; `TicketCreate` accepts `category_id` only.
+
+Phase 11 shipped the Agent Console (`frontend/src/pages/agent/`), with `frontend/src/lib/agent.ts` holding its pure logic (legal transitions, SLA scrubber maths, `@mention` parsing) so `npm run selfcheck` can assert it. Three backend additions came with it:
+
+- `GET /tickets` gained `assignee_id` and `unassigned` query params — the three queue tabs are one endpoint with different filters, and the caller's row scope still caps what any filter can return.
+- `GET /users` opened to `agent`, team-scoped exactly as `team_lead` already was.
+- `POST` / `PATCH /knowledge-base/articles` (App Flow §19): staff draft, **only an Admin may publish** — `status: "published"` is 403 for anyone else, on create and on update alike.
+
+Two spec tensions resolved in Phase 11, both documented at the code:
+- Doc 05 §6 gives an Agent "read own profile only", but Doc 06 Phase 11 mandates an assignment modal and `@mention` autocomplete, neither of which can exist without a colleague directory. Agents read the team-scoped directory; no write access anywhere. `tests/security/test_permissions.py` pins the team scoping.
+- `ticket_status_history` is Team Lead+ (Doc 05 §6), so the History tab's activity feed is assembled client-side from what the caller may already read — a plain Agent sees comments, AI events and ticket timestamps, a Team Lead additionally sees status changes. Narrower, never broken.
+
+An agent's queue only shows tickets inside `scope_tickets_to_caller` — a brand-new ticket with no queue and no assignee is invisible to agents until the AI pipeline routes it. That is Phase 4 behaviour, not a queue bug; test against tickets the pipeline has already touched.
 
 Phase 5 resolved decisions (user-chosen, do not re-open silently): LLM = Gemini 2.5 Flash, embeddings = `gemini-embedding-001` at 1536 dims (matches migration 0001's `vector(1536)`), classifier = DistilBERT fine-tuned on synthetic seed data (`scripts/train_classifier.py` → `ml_models/classifier`, gitignored). `GEMINI_API_KEY` in `.env` gates the pipeline; without it ticket creation still works and the pipeline logs a skip. Still open: vector store beyond pgvector, final SLA thresholds, hosting target.
 

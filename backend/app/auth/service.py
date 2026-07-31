@@ -271,6 +271,24 @@ async def confirm_password_reset(session: AsyncSession, raw_token: str, new_pass
     await session.commit()
 
 
+async def change_password(
+    session: AsyncSession, user: User, current_password: str, new_password: str
+) -> None:
+    """Authenticated password change from Account Settings (App Flow Doc 03 §1).
+
+    Distinct from the reset flow: the caller proves ownership with their current
+    password rather than an emailed token.
+    """
+    if not security.verify_password(current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    user.password_hash = security.hash_password(new_password)
+    user.updated_at = _now()
+    # Same rule as a reset (TRD §9): a password change invalidates every other
+    # session, so a stolen refresh token cannot outlive the change.
+    await _revoke_all_refresh(session, user.id)
+    await session.commit()
+
+
 # --- Users CRUD (permissions matrix, Document 05 §7) ---
 
 
@@ -325,7 +343,7 @@ async def list_users(
     team_id: uuid.UUID | None,
 ) -> list[UserOut]:
     stmt = sa.select(User).order_by(User.created_at)
-    if caller_role == "team_lead":  # team leads see their own team only (Doc 05 §6)
+    if caller_role in ("team_lead", "agent"):  # own team only (Doc 05 §6)
         stmt = stmt.where(User.team_id == caller.team_id)
     if team_id is not None:
         stmt = stmt.where(User.team_id == team_id)

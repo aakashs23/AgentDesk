@@ -54,6 +54,58 @@ function refreshTokens(): Promise<boolean> {
   return refreshing
 }
 
+/**
+ * Multipart upload with real progress. `fetch` cannot report upload progress,
+ * and Doc 03 §13 asks for a progress bar, so this one call uses XHR. It repeats
+ * `api()`'s single-flight refresh-and-retry rather than skipping it, so a token
+ * expiring mid-form does not lose the user's file.
+ */
+export function uploadFile<T = unknown>(
+  path: string,
+  file: File,
+  onProgress?: (fraction: number) => void,
+  signal?: AbortSignal,
+): Promise<T> {
+  const attempt = (): Promise<{ status: number; text: string }> =>
+    new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest()
+      const form = new FormData()
+      form.append('file', file)
+
+      request.open('POST', BASE + path)
+      const session = getSession()
+      if (session) request.setRequestHeader('authorization', `Bearer ${session.access}`)
+
+      request.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress?.(e.loaded / e.total)
+      }
+      request.onload = () => resolve({ status: request.status, text: request.responseText })
+      request.onerror = () => reject(new ApiError(0, 'Upload failed — check your connection'))
+      request.onabort = () => reject(new DOMException('Aborted', 'AbortError'))
+      signal?.addEventListener('abort', () => request.abort(), { once: true })
+      request.send(form)
+    })
+
+  const parse = (text: string) => {
+    try {
+      return JSON.parse(text)
+    } catch {
+      return null
+    }
+  }
+
+  return (async () => {
+    let result = await attempt()
+    if (result.status === 401 && getSession() && (await refreshTokens())) result = await attempt()
+    if (result.status < 200 || result.status >= 300) {
+      const body = parse(result.text)
+      const detail = typeof body?.detail === 'string' ? body.detail : 'Upload failed'
+      throw new ApiError(result.status, detail)
+    }
+    return parse(result.text) as T
+  })()
+}
+
 export interface ApiOptions extends Omit<RequestInit, 'body'> {
   /** Serialised as a JSON body with the right content-type. */
   json?: unknown
