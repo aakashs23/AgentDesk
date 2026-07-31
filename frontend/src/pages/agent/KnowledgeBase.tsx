@@ -7,21 +7,29 @@ import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { EmptyState, ErrorState } from '../../components/EmptyState'
 import { Input } from '../../components/Input'
+import { ConfirmModal } from '../../components/Modal'
 import { Skeleton, SkeletonRows } from '../../components/Skeleton'
 import { ApiError, api } from '../../lib/api'
 import { useUser } from '../../lib/auth'
 import { useDebounced } from '../../lib/hooks'
-import { useCategories, useTicket } from '../../lib/queries'
+import { useCategories, useSurfaceBase, useTicket } from '../../lib/queries'
 import { toast } from '../../lib/toast'
 import type { KbArticle, KbArticleSummary } from '../../lib/types'
 import { cn, focusRing, relativeTime } from '../../lib/ui'
 
-/** Agent-facing KB browse. Unlike the portal's accordion this is a working
- *  list — status is visible, because an agent sees their own unpublished
- *  drafts alongside published articles (Doc 05 §6). */
+/**
+ * Staff-facing KB browse. Unlike the portal's accordion this is a working
+ * list — status is visible, because an agent sees their own unpublished drafts
+ * alongside published articles (Doc 05 §6).
+ *
+ * Mounted under both `/agent/kb` and `/admin/kb`: the API already returns
+ * everything an Admin may see (all drafts, all authors), so Knowledge Base
+ * Management is this same screen asked by a different role, not a second one.
+ */
 export function AgentKnowledgeBase() {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
+  const base = useSurfaceBase()
   const term = useDebounced(query.trim(), 300)
 
   const articles = useQuery({
@@ -39,7 +47,7 @@ export function AgentKnowledgeBase() {
         <Button
           variant="primary"
           icon={<Plus size={16} strokeWidth={1.5} />}
-          onClick={() => navigate('/agent/kb/new')}
+          onClick={() => navigate(`${base}/kb/new`)}
         >
           New article
         </Button>
@@ -90,7 +98,7 @@ export function AgentKnowledgeBase() {
             <li key={article.id}>
               <Card interactive className="p-0">
                 <Link
-                  to={`/agent/kb/${article.id}`}
+                  to={`${base}/kb/${article.id}`}
                   className={cn('flex items-center gap-12 p-16', focusRing)}
                 >
                   <div className="min-w-0 flex-1">
@@ -132,6 +140,7 @@ export function KbArticleEditor() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const user = useUser()
+  const base = useSurfaceBase()
   const categories = useCategories()
 
   const editing = Boolean(articleId)
@@ -180,7 +189,7 @@ export function KbArticleEditor() {
     onSuccess: async (saved) => {
       await queryClient.invalidateQueries({ queryKey: ['kb'] })
       toast(saved.status === 'published' ? 'Article published' : 'Draft saved', 'success')
-      navigate(`/agent/kb/${saved.id}`)
+      navigate(`${base}/kb/${saved.id}`)
     },
     onError: (e) => toast(e instanceof ApiError ? e.message : 'Could not save', 'error'),
   })
@@ -237,7 +246,7 @@ export function KbArticleEditor() {
       </div>
 
       <div className="mt-24 flex flex-wrap justify-end gap-8">
-        <Button onClick={() => navigate('/agent/kb')}>Cancel</Button>
+        <Button onClick={() => navigate(`${base}/kb`)}>Cancel</Button>
         <Button
           variant="primary"
           disabled={!title.trim() || !body.trim() || save.isPending}
@@ -263,10 +272,24 @@ export function KbArticleEditor() {
 export function AgentKbArticle() {
   const { articleId } = useParams<{ articleId: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const user = useUser()
+  const base = useSurfaceBase()
+  const [confirming, setConfirming] = useState(false)
   const article = useQuery({
     queryKey: ['kb-article', articleId],
     enabled: Boolean(articleId),
     queryFn: () => api<KbArticle>(`/knowledge-base/articles/${articleId}`),
+  })
+
+  const remove = useMutation({
+    mutationFn: () => api<void>(`/knowledge-base/articles/${articleId}`, { method: 'DELETE' }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['kb'] })
+      toast('Article deleted', 'success')
+      navigate(`${base}/kb`)
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Could not delete', 'error'),
   })
 
   if (article.isPending) return <Skeleton className="h-[320px]" />
@@ -290,9 +313,28 @@ export function AgentKbArticle() {
             <time dateTime={article.data.updated_at}>{relativeTime(article.data.updated_at)}</time>
           </p>
         </div>
-        <Button onClick={() => navigate(`/agent/kb/${article.data.id}/edit`)}>Edit</Button>
+        <div className="flex gap-8">
+          <Button onClick={() => navigate(`${base}/kb/${article.data.id}/edit`)}>Edit</Button>
+          {/* Doc 03 §1 gives Admin full CRUD; the API refuses a delete from
+              anyone else, author or not. */}
+          {user?.role === 'admin' && (
+            <Button variant="ghost" onClick={() => setConfirming(true)}>
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
       <div className="text-body mt-24 whitespace-pre-wrap">{article.data.body}</div>
+
+      <ConfirmModal
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        onConfirm={() => remove.mutate()}
+        title="Delete this article?"
+        message="It stops being suggested on new tickets immediately. The audit entry survives it."
+        confirmLabel="Delete"
+        destructive
+      />
     </div>
   )
 }

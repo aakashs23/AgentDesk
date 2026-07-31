@@ -2,8 +2,18 @@ import { Navigate, Route, Routes } from 'react-router'
 
 import { HOME_BY_ROLE, useUser } from '../lib/auth'
 import { Login } from '../pages/Login'
-import { Placeholder } from '../pages/Placeholder'
 import { ForgotPassword, ResetPassword, SignUp, VerifyEmail } from '../pages/SignUp'
+import { AiPerformance } from '../pages/admin/AiPerformance'
+import { AuditLog } from '../pages/admin/AuditLog'
+import { AutomationRules } from '../pages/admin/Automation'
+import { AdminOverview } from '../pages/admin/Overview'
+import { AdminReports } from '../pages/admin/Reports'
+import { FirstTimeSetup } from '../pages/admin/Setup'
+import { SlaRules } from '../pages/admin/Sla'
+import { TemplatesAndBranding } from '../pages/admin/Templates'
+import { TicketConfiguration } from '../pages/admin/TicketConfig'
+import { UsersAndTeams } from '../pages/admin/Users'
+import { Webhooks } from '../pages/admin/Webhooks'
 import { AgentKbArticle, AgentKnowledgeBase, KbArticleEditor } from '../pages/agent/KnowledgeBase'
 import { Queue } from '../pages/agent/Queue'
 import { SavedViews } from '../pages/agent/SavedViews'
@@ -20,9 +30,9 @@ import { RequireAuth } from './RequireAuth'
 
 /**
  * The route table for all three surfaces. Phase 9 built the structure — role
- * guards, per-surface shell, redirects — with placeholders behind it; Phase 10
- * filled in the Customer Portal and Phase 11 the Agent Console. Only `/admin`
- * still renders placeholders, until Phase 12.
+ * guards, per-surface shell, redirects — with placeholders behind it; Phases
+ * 10–12 filled in the Customer Portal, the Agent Console and the Admin
+ * Dashboard in turn — every route below renders a real screen.
  */
 function RoleHome() {
   const user = useUser()
@@ -77,52 +87,30 @@ export function AppRoutes() {
         </Route>
       </Route>
 
-      {/* Admin Dashboard — dark-first. */}
+      {/* Admin Dashboard — dark-first. Phase 12. */}
       <Route element={<RequireAuth roles={['admin']} />}>
         <Route element={<AppShell basePath="/admin" searchPlaceholder="Search tickets…" />}>
-          <Route path="/admin" element={<Placeholder title="Admin Overview" phase="Phase 12" />} />
-          <Route
-            path="/admin/users"
-            element={<Placeholder title="Users & Teams" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/tickets"
-            element={<Placeholder title="Ticket Configuration" phase="Phase 12" />}
-          />
-          <Route path="/admin/sla" element={<Placeholder title="SLA Rules" phase="Phase 12" />} />
-          <Route
-            path="/admin/automation"
-            element={<Placeholder title="Automation Rules" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/templates"
-            element={<Placeholder title="Templates & Branding" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/webhooks"
-            element={<Placeholder title="Webhooks" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/reports"
-            element={<Placeholder title="Reports & Analytics" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/ai"
-            element={<Placeholder title="AI Performance" phase="Phase 12" />}
-          />
-          <Route path="/admin/audit" element={<Placeholder title="Audit Log" phase="Phase 12" />} />
-          <Route
-            path="/admin/kb"
-            element={<Placeholder title="Knowledge Base" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/notifications"
-            element={<Placeholder title="Notifications" phase="Phase 12" />}
-          />
-          <Route
-            path="/admin/settings"
-            element={<Placeholder title="Account Settings" phase="Phase 12" />}
-          />
+          <Route path="/admin" element={<AdminOverview />} />
+          {/* App Flow §26 — the Overview redirects here on an empty deployment. */}
+          <Route path="/admin/setup" element={<FirstTimeSetup />} />
+          <Route path="/admin/users" element={<UsersAndTeams />} />
+          <Route path="/admin/tickets" element={<TicketConfiguration />} />
+          <Route path="/admin/sla" element={<SlaRules />} />
+          <Route path="/admin/automation" element={<AutomationRules />} />
+          <Route path="/admin/templates" element={<TemplatesAndBranding />} />
+          <Route path="/admin/webhooks" element={<Webhooks />} />
+          <Route path="/admin/reports" element={<AdminReports />} />
+          <Route path="/admin/ai" element={<AiPerformance />} />
+          <Route path="/admin/audit" element={<AuditLog />} />
+          {/* Knowledge Base Management is the Agent Console's KB screens with an
+              Admin asking: same API, wider scope, plus delete. */}
+          <Route path="/admin/kb" element={<AgentKnowledgeBase />} />
+          <Route path="/admin/kb/new" element={<KbArticleEditor />} />
+          <Route path="/admin/kb/:articleId" element={<AgentKbArticle />} />
+          <Route path="/admin/kb/:articleId/edit" element={<KbArticleEditor />} />
+          {/* Surface-agnostic, as on the other two surfaces. */}
+          <Route path="/admin/notifications" element={<Notifications />} />
+          <Route path="/admin/settings" element={<AccountSettings />} />
         </Route>
       </Route>
 

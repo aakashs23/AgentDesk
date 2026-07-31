@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.admin_config.config_router import router as admin_config_router
 from app.admin_config.router import router as admin_router
 from app.admin_config.taxonomy_router import router as taxonomy_router
 from app.ai.router import router as ai_router
@@ -58,6 +59,7 @@ app.include_router(tickets_router, prefix="/api/v1")
 app.include_router(csat_router, prefix="/api/v1")
 app.include_router(ai_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(admin_config_router, prefix="/api/v1")
 app.include_router(taxonomy_router, prefix="/api/v1")
 app.include_router(kb_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")

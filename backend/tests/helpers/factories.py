@@ -239,7 +239,10 @@ def catalog(db) -> dict:
 
 
 def make_team(db, name: str | None = None) -> str:
-    """A throwaway team. There is no team CRUD API, so this inserts directly.
+    """A throwaway team, inserted directly rather than through `POST /admin/teams`.
+
+    Phase 12 built that endpoint, but it is Admin-only and this factory is used
+    from tests running as every role; a direct insert also skips a login.
 
     Use this instead of the seeded team whenever a test creates an agent or a
     team lead: `escalate_ticket` and `automation._find_team_lead` both pick a

@@ -17,6 +17,18 @@ import {
   nextStatuses,
   slaTimeline,
 } from '../src/lib/agent.ts'
+import {
+  buildCategoryTree,
+  describeChange,
+  eligibleParents,
+  flattenTree,
+  formatMinutes,
+  formatRate,
+  humanise,
+  isSystemReady,
+  ruleProblem,
+  setupProgress,
+} from '../src/lib/admin.ts'
 import { MAX_ATTACHMENT_BYTES, validateFile } from '../src/lib/attachments.ts'
 import {
   formatBytes,
@@ -168,5 +180,107 @@ assert.equal(matchPeople(people, '').length, 2) // an empty query lists everyone
 assert.equal(formatDuration(null), '—')
 assert.equal(formatDuration(90), '2m') // rounds to the nearest minute
 assert.equal(formatDuration(3600 * 4 + 720), '4h 12m')
+
+// --- Admin Dashboard (Phase 12) ---------------------------------------------
+
+// The category tree is nested client-side from a flat adjacency list.
+const flat = [
+  { id: 'b', name: 'Billing', parent_id: null },
+  { id: 'b1', name: 'Invoices', parent_id: 'b' },
+  { id: 'a', name: 'Access', parent_id: null },
+  { id: 'orphan', name: 'Orphan', parent_id: 'gone' },
+]
+const tree = buildCategoryTree(flat)
+// Roots sort by name, and a row whose parent is missing is shown as a root
+// rather than dropped — otherwise it is invisible and un-fixable.
+assert.deepEqual(
+  tree.map((n) => n.id),
+  ['a', 'b', 'orphan'],
+)
+assert.equal(tree[1].children.length, 1)
+assert.deepEqual(
+  flattenTree(tree).map((n) => [n.id, n.depth]),
+  [
+    ['a', 0],
+    ['b', 0],
+    ['b1', 1],
+    ['orphan', 0],
+  ],
+)
+
+// A category may not be re-parented into its own subtree (the API 422s on it,
+// and offering the option only to have it refused is worse than not offering).
+assert.deepEqual(
+  eligibleParents(tree, 'b').map((n) => n.id),
+  ['a', 'orphan'],
+)
+assert.equal(eligibleParents(tree, null).length, 4)
+
+// The builder refuses to save a rule the engine would run to no effect.
+const validRule = {
+  name: 'Escalate',
+  trigger_type: 'ticket_created',
+  conditions: [{ field: 'status' as const, op: 'eq' as const, value: 'new' }],
+  actions: [{ type: 'escalate' as const }],
+}
+assert.equal(ruleProblem(validRule), null)
+assert.match(ruleProblem({ ...validRule, name: '  ' })!, /name/)
+assert.match(ruleProblem({ ...validRule, trigger_type: 'nope' })!, /trigger/)
+assert.match(ruleProblem({ ...validRule, actions: [] })!, /no actions/)
+// An action whose target is blank would fail at runtime, once per matched ticket.
+assert.match(ruleProblem({ ...validRule, actions: [{ type: 'assign' }] })!, /missing its target/)
+// `escalate` takes no target, so it must not be flagged for lacking one.
+assert.equal(ruleProblem({ ...validRule, actions: [{ type: 'escalate' }] }), null)
+assert.match(
+  ruleProblem({ ...validRule, conditions: [{ field: 'status', op: 'eq', value: '' }] })!,
+  /condition/,
+)
+
+// The audit viewer names what changed, and stays quiet about what did not.
+assert.equal(
+  describeChange({
+    entity_type: 'ticket',
+    action: 'updated',
+    before_state: { status: 'open', subject: 'same' },
+    after_state: { status: 'in_progress', subject: 'same' },
+  }),
+  'status: open → in_progress',
+)
+assert.equal(
+  describeChange({
+    entity_type: 'team',
+    action: 'created',
+    before_state: null,
+    after_state: { name: 'Support' },
+  }),
+  'name → Support',
+)
+assert.equal(
+  describeChange({ entity_type: 'x', action: 'y', before_state: null, after_state: null }),
+  '—',
+)
+
+// App Flow §26: "ready" is not "every step done" — inviting staff can wait, a
+// ticket with no SLA policy cannot.
+const bare = { teams: 0, categories: 0, priorities: 0, slaRules: 0, staff: 0 }
+assert.equal(isSystemReady(bare), false)
+assert.equal(setupProgress(bare), 0)
+const configured = { teams: 1, categories: 2, priorities: 4, slaRules: 4, staff: 0 }
+assert.equal(isSystemReady(configured), true)
+assert.equal(setupProgress(configured), 80)
+assert.equal(setupProgress({ ...configured, staff: 3 }), 100)
+
+// Minutes read as hours or days past the point where minutes stop being useful.
+assert.equal(formatMinutes(45), '45m')
+assert.equal(formatMinutes(120), '2h')
+assert.equal(formatMinutes(90), '1.5h')
+assert.equal(formatMinutes(2880), '2d')
+
+assert.equal(formatRate(0.8123), '81%')
+assert.equal(formatRate(null), '—')
+assert.equal(formatRate(undefined), '—')
+
+assert.equal(humanise('team_lead'), 'Team lead')
+assert.equal(humanise('sla_breached'), 'Sla breached')
 
 console.log('ui.selfcheck: all assertions passed')

@@ -278,12 +278,91 @@ async def _ai_performance(session, ids, start, end):
     return columns, rows
 
 
+async def _ai_performance_trend(session, ids, start, end):
+    """The same numbers as `_ai_performance`, one row per day.
+
+    Doc 06's Phase 12 asks for the AI Performance Monitor's rates "over time".
+    That is this generator rather than a new endpoint: it inherits the existing
+    report plumbing — role scoping, background generation, CSV/XLSX/PDF export —
+    and the monitor screen charts the rows it gets back.
+
+    Classifications and drafts are counted in separate queries and joined by day
+    in Python: a SQL join between them double-counts, because one ticket can
+    carry several drafts against a single classification.
+    """
+    day = sa.func.date_trunc("day", AiClassificationHistory.created_at).label("day")
+    cls_rows = (
+        await session.execute(
+            _range(
+                sa.select(
+                    day,
+                    sa.func.count().label("total"),
+                    sa.func.count()
+                    .filter(AiClassificationHistory.was_overridden.is_(True))
+                    .label("overridden"),
+                ).where(AiClassificationHistory.ticket_id.in_(sa.select(ids.c.id))),
+                AiClassificationHistory.created_at,
+                start,
+                end,
+            )
+            .group_by(day)
+            .order_by(day)
+        )
+    ).all()
+
+    draft_day = sa.func.date_trunc("day", AiDraftHistory.created_at).label("day")
+    draft_rows = (
+        await session.execute(
+            _range(
+                sa.select(
+                    draft_day,
+                    sa.func.count().label("total"),
+                    sa.func.count()
+                    .filter(AiDraftHistory.review_status.in_(("approved", "edited")))
+                    .label("accepted"),
+                ).where(AiDraftHistory.ticket_id.in_(sa.select(ids.c.id))),
+                AiDraftHistory.created_at,
+                start,
+                end,
+            )
+            .group_by(draft_day)
+            .order_by(draft_day)
+        )
+    ).all()
+    drafts = {d: (total, accepted) for d, total, accepted in draft_rows}
+
+    columns = [
+        "day",
+        "classifications",
+        "accepted_classifications",
+        "auto_routing_acceptance_rate",
+        "drafts",
+        "draft_approval_rate",
+    ]
+    rows = []
+    for d in sorted({d for d, *_ in cls_rows} | set(drafts)):
+        total, overridden = next(((t, o) for day_, t, o in cls_rows if day_ == d), (0, 0))
+        draft_total, accepted = drafts.get(d, (0, 0))
+        rows.append(
+            {
+                "day": d.isoformat(),
+                "classifications": total,
+                "accepted_classifications": total - overridden,
+                "auto_routing_acceptance_rate": round(1 - overridden / total, 4) if total else None,
+                "drafts": draft_total,
+                "draft_approval_rate": round(accepted / draft_total, 4) if draft_total else None,
+            }
+        )
+    return columns, rows
+
+
 GENERATORS = {
     "agent_productivity": _agent_productivity,
     "sla_compliance": _sla_compliance,
     "ticket_trends": _ticket_trends,
     "category_analytics": _category_analytics,
     "ai_performance": _ai_performance,
+    "ai_performance_trend": _ai_performance_trend,
 }
 
 

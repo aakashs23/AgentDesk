@@ -5,6 +5,8 @@ database and other tests create tickets constantly, so any test that pinned an
 absolute count would be measuring the rest of the suite rather than the code.
 """
 
+from datetime import UTC, datetime
+
 import pytest
 
 from tests.helpers import factories as f
@@ -17,6 +19,7 @@ REPORT_TYPES = [
     "ticket_trends",
     "ai_performance",
     "category_analytics",
+    "ai_performance_trend",
 ]
 
 
@@ -249,3 +252,51 @@ def test_ai_performance_rates_are_bounded(client, tokens):
         value = by_metric[metric]
         assert value is None or 0.0 <= value <= 1.0, f"{metric} = {value}"
     assert by_metric["drafts_total"] >= 0
+
+
+def test_the_ai_trend_report_never_double_counts_a_day(client, db, tokens):
+    """Classifications and drafts are counted separately and joined by day: one
+    ticket can carry several drafts against a single classification, so a SQL
+    join between the two tables would inflate the classification count."""
+    import sqlalchemy as sa
+
+    ticket = f.make_ticket(client, tokens["requester"])
+    with db.begin() as conn:
+        catalog = conn.execute(sa.text("SELECT id FROM priorities LIMIT 1")).scalar_one()
+        conn.execute(
+            sa.text(
+                "INSERT INTO ai_classification_history "
+                "(ticket_id, predicted_priority_id, confidence, confidence_tier, model_version) "
+                "VALUES (:t, :p, 90, 'high', 'test')"
+            ),
+            {"t": ticket["id"], "p": catalog},
+        )
+        for status in ("approved", "edited", "rejected"):
+            conn.execute(
+                sa.text(
+                    "INSERT INTO ai_draft_history "
+                    "(ticket_id, generated_by_model, draft_content, review_status) "
+                    "VALUES (:t, 'test', 'draft', :s)"
+                ),
+                {"t": ticket["id"], "s": status},
+            )
+
+    created = client.post(
+        f"{API}/reports/generate",
+        json={"report_type": "ai_performance_trend"},
+        headers=auth(tokens["admin"]),
+    )
+    assert_status(created, 202)
+    report = client.get(
+        f"{API}/reports/{created.json()['id']}", headers=auth(tokens["admin"])
+    ).json()
+    assert report["status"] == "ready", report["error"]
+
+    today = datetime.now(UTC).date().isoformat()
+    row = next(r for r in report["rows"] if r["day"].startswith(today))
+    # Three drafts against one classification: the classification is counted once.
+    assert row["drafts"] >= 3
+    assert row["classifications"] >= 1
+    assert row["classifications"] <= row["drafts"], "classifications inflated by the draft join"
+    # Two of the three drafts (approved + edited) count as accepted.
+    assert 0 < row["draft_approval_rate"] < 1
