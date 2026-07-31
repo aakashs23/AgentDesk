@@ -76,6 +76,72 @@ export interface KbArticle extends KbArticleSummary {
   created_at: string
 }
 
+/** One `ai_classification_history` row — the AI Insights tab's whole payload. */
+export interface AiClassification {
+  id: string
+  ticket_id: string
+  predicted_category_id: string | null
+  predicted_priority_id: string | null
+  /** 0–100, as the pipeline stores it. */
+  confidence: number
+  confidence_tier: 'high' | 'medium' | 'low'
+  model_version: string
+  was_overridden: boolean
+  corrected_category_id: string | null
+  corrected_priority_id: string | null
+  created_at: string
+}
+
+export interface AiDraft {
+  id: string
+  ticket_id: string
+  generated_by_model: string
+  draft_content: string
+  confidence_score: number | null
+  review_status: 'pending' | 'approved' | 'edited' | 'rejected'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  final_comment_id: string | null
+  created_at: string
+}
+
+export interface AiInsights {
+  classification: AiClassification | null
+  drafts: AiDraft[]
+}
+
+export interface StatusHistoryEntry {
+  id: string
+  old_status: string | null
+  new_status: string
+  changed_by: string | null
+  changed_at: string
+}
+
+export interface SavedView {
+  id: string
+  name: string
+  filters: Record<string, unknown>
+  created_at: string
+}
+
+/** `UserOut` — the staff directory behind assignment and @mention. */
+export interface DirectoryUser {
+  id: string
+  email: string
+  full_name: string
+  role: string
+  team_id: string | null
+  is_active: boolean
+}
+
+export interface DashboardMetrics {
+  open_ticket_count: number
+  avg_resolution_seconds: number | null
+  sla_compliance_rate: number | null
+  agent_workload: { assignee_id: string; full_name: string; open_tickets: number }[]
+}
+
 export interface Notification {
   id: string
   ticket_id: string | null

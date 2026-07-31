@@ -7,16 +7,18 @@
 | team_lead  | `published` + drafts they authored        |
 | admin      | everything                                |
 
-Write access (create/edit from a resolved ticket) is Phase 11/12 work — this
-module ships the read side the Customer Portal needs.
+Writes follow App Flow §19's creation loop: staff draft an article from a
+resolved ticket, only an Admin publishes it. Full admin CRUD is Phase 12.
 """
 
 import uuid
+from datetime import UTC, datetime
 
 import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit import service as audit
 from app.models import KnowledgeBaseArticle, User
 
 
@@ -72,4 +74,76 @@ async def get_article_scoped(
     if article is None:
         # 404 rather than 403: an unpublished draft should not be discoverable.
         raise HTTPException(status_code=404, detail="Article not found")
+    return article
+
+
+# --- Writes (App Flow §19) ---
+
+
+def _check_publish_rights(role: str, status: str | None) -> None:
+    """§19 step 4–5: drafting is a staff action, publishing is an Admin one."""
+    if status == "published" and role != "admin":
+        raise HTTPException(status_code=403, detail="Only an admin may publish an article")
+
+
+async def create_article(
+    session: AsyncSession,
+    user: User,
+    role: str,
+    title: str,
+    body: str,
+    category_id: uuid.UUID | None,
+    source_ticket_id: uuid.UUID | None,
+    status: str,
+) -> KnowledgeBaseArticle:
+    _check_publish_rights(role, status)
+    article = KnowledgeBaseArticle(
+        title=title,
+        body=body,
+        category_id=category_id,
+        source_ticket_id=source_ticket_id,
+        author_id=user.id,
+        status=status,
+        published_at=datetime.now(UTC) if status == "published" else None,
+    )
+    session.add(article)
+    await session.flush()
+    audit.log(
+        session,
+        "knowledge_base_article",
+        article.id,
+        user.id,
+        "created",
+        after={"title": title, "status": status},
+    )
+    await session.commit()
+    await session.refresh(article)
+    return article
+
+
+async def update_article(
+    session: AsyncSession, user: User, role: str, article_id: uuid.UUID, changes: dict
+) -> KnowledgeBaseArticle:
+    article = await get_article_scoped(session, user, role, article_id)
+    if role != "admin" and article.author_id != user.id:
+        raise HTTPException(status_code=403, detail="Not the article author")
+    _check_publish_rights(role, changes.get("status"))
+
+    before = {k: getattr(article, k) for k in changes}
+    for key, value in changes.items():
+        setattr(article, key, value)
+    if changes.get("status") == "published" and article.published_at is None:
+        article.published_at = datetime.now(UTC)
+    article.updated_at = datetime.now(UTC)
+    audit.log(
+        session,
+        "knowledge_base_article",
+        article.id,
+        user.id,
+        "updated",
+        before={k: str(v) for k, v in before.items()},
+        after={k: str(v) for k, v in changes.items()},
+    )
+    await session.commit()
+    await session.refresh(article)
     return article

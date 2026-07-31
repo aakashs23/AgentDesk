@@ -44,11 +44,15 @@ async def list_tickets(
     caller: CurrentUser,
     session: SessionDep,
     status: str | None = None,
+    assignee_id: uuid.UUID | None = None,
+    unassigned: bool = False,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[schemas.TicketOut]:
     role = await _role(session, caller)
-    tickets = await service.list_tickets(session, caller, role, status, limit, offset)
+    tickets = await service.list_tickets(
+        session, caller, role, status, limit, offset, assignee_id, unassigned
+    )
     return [schemas.TicketOut.model_validate(t) for t in tickets]
 
 

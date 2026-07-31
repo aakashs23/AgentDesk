@@ -150,11 +150,21 @@ async def list_tickets(
     status: str | None,
     limit: int,
     offset: int,
+    assignee_id: uuid.UUID | None = None,
+    unassigned: bool = False,
 ) -> list[Ticket]:
+    """The Agent Console's queue tabs are this one query with a different filter:
+    My Tickets = assignee_id, Unassigned = unassigned, Team Queue = neither. The
+    caller's row scope (Doc 05 §6) always applies on top, so a filter can only
+    ever narrow what they were already allowed to see."""
     criterion = scope_tickets_to_caller(caller, role, Ticket, Queue, User)
     query = sa.select(Ticket).where(criterion)
     if status:
         query = query.where(Ticket.status == status)
+    if assignee_id is not None:
+        query = query.where(Ticket.assignee_id == assignee_id)
+    if unassigned:
+        query = query.where(Ticket.assignee_id.is_(None))
     query = query.order_by(Ticket.created_at.desc()).limit(limit).offset(offset)
     return list((await session.execute(query)).scalars())
 

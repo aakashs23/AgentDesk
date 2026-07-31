@@ -4,6 +4,11 @@ import { HOME_BY_ROLE, useUser } from '../lib/auth'
 import { Login } from '../pages/Login'
 import { Placeholder } from '../pages/Placeholder'
 import { ForgotPassword, ResetPassword, SignUp, VerifyEmail } from '../pages/SignUp'
+import { AgentKbArticle, AgentKnowledgeBase, KbArticleEditor } from '../pages/agent/KnowledgeBase'
+import { Queue } from '../pages/agent/Queue'
+import { SavedViews } from '../pages/agent/SavedViews'
+import { TeamReports, TeamWorkload } from '../pages/agent/Team'
+import { AgentTicketDetail } from '../pages/agent/TicketDetail'
 import { AccountSettings } from '../pages/portal/AccountSettings'
 import { KbArticleDetail, KnowledgeBaseSearch } from '../pages/portal/KnowledgeBase'
 import { MyTickets } from '../pages/portal/MyTickets'
@@ -14,9 +19,10 @@ import { AppShell } from '../shell/AppShell'
 import { RequireAuth } from './RequireAuth'
 
 /**
- * Phase 9 builds the shell, not the screens: every route below the three
- * surfaces renders a placeholder until its phase lands. The structure is what
- * matters here — the role guards, the per-surface shell, and the redirects.
+ * The route table for all three surfaces. Phase 9 built the structure — role
+ * guards, per-surface shell, redirects — with placeholders behind it; Phase 10
+ * filled in the Customer Portal and Phase 11 the Agent Console. Only `/admin`
+ * still renders placeholders, until Phase 12.
  */
 function RoleHome() {
   const user = useUser()
@@ -50,41 +56,23 @@ export function AppRoutes() {
       {/* Agent Console — dark-first. Team Lead extras are gated inside. */}
       <Route element={<RequireAuth roles={['agent', 'team_lead', 'admin']} />}>
         <Route element={<AppShell basePath="/agent" searchPlaceholder="Search tickets…" />}>
-          <Route
-            path="/agent/queue"
-            element={<Placeholder title="Ticket Queue" phase="Phase 11" />}
-          />
-          <Route
-            path="/agent/tickets/:ticketId"
-            element={<Placeholder title="Ticket Detail" phase="Phase 11" />}
-          />
-          <Route
-            path="/agent/views"
-            element={<Placeholder title="Saved Views" phase="Phase 11" />}
-          />
-          <Route
-            path="/agent/kb"
-            element={<Placeholder title="Knowledge Base" phase="Phase 11" />}
-          />
-          <Route
-            path="/agent/notifications"
-            element={<Placeholder title="Notifications" phase="Phase 11" />}
-          />
-          <Route
-            path="/agent/settings"
-            element={<Placeholder title="Account Settings" phase="Phase 11" />}
-          />
+          <Route path="/agent/queue" element={<Queue />} />
+          <Route path="/agent/tickets/:ticketId" element={<AgentTicketDetail />} />
+          <Route path="/agent/views" element={<SavedViews />} />
+          <Route path="/agent/kb" element={<AgentKnowledgeBase />} />
+          {/* `new` before `:articleId`, or the editor is never reached. */}
+          <Route path="/agent/kb/new" element={<KbArticleEditor />} />
+          <Route path="/agent/kb/:articleId" element={<AgentKbArticle />} />
+          <Route path="/agent/kb/:articleId/edit" element={<KbArticleEditor />} />
+          {/* Notifications and Account Settings are surface-agnostic: they read
+              their deep-link prefix from the URL, so one copy serves all three. */}
+          <Route path="/agent/notifications" element={<Notifications />} />
+          <Route path="/agent/settings" element={<AccountSettings />} />
           {/* Team Lead only — a plain Agent has no sidebar entry for these and
               is bounced by the guard if they type the URL. */}
           <Route element={<RequireAuth roles={['team_lead', 'admin']} />}>
-            <Route
-              path="/agent/workload"
-              element={<Placeholder title="Team Workload" phase="Phase 11" />}
-            />
-            <Route
-              path="/agent/reports"
-              element={<Placeholder title="Team Reports" phase="Phase 11" />}
-            />
+            <Route path="/agent/workload" element={<TeamWorkload />} />
+            <Route path="/agent/reports" element={<TeamReports />} />
           </Route>
         </Route>
       </Route>

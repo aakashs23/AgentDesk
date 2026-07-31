@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router'
 import { EmptyState, ErrorState } from '../../components/EmptyState'
 import { SkeletonRows } from '../../components/Skeleton'
 import { api } from '../../lib/api'
+import { useSurfaceBase } from '../../lib/queries'
 import type { Notification } from '../../lib/types'
 import { cn, focusRing, relativeTime } from '../../lib/ui'
 
@@ -25,6 +26,9 @@ const TRIGGER_COPY: Record<string, string> = {
 export function Notifications() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // Mounted under /portal, /agent and /admin — deep-link within whichever
+  // surface the reader is already in, so the ticket opens in the right view.
+  const base = useSurfaceBase()
 
   const notifications = useQuery({
     queryKey: ['notifications', 'feed'],
@@ -42,7 +46,7 @@ export function Notifications() {
   function open(notification: Notification) {
     if (!notification.is_read) markRead.mutate(notification.id)
     // Doc 03 §8: clicking a notification deep-links to the relevant ticket.
-    if (notification.ticket_id) navigate(`/portal/tickets/${notification.ticket_id}`)
+    if (notification.ticket_id) navigate(`${base}/tickets/${notification.ticket_id}`)
   }
 
   return (

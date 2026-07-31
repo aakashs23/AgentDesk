@@ -26,7 +26,12 @@ export function Drawer({ open, onClose, title, header, children, footer }: Drawe
       ref={ref}
       aria-labelledby="drawer-title"
       className={cn(
-        'border-border bg-elevated text-ink shadow-elevated flex flex-col border backdrop:bg-black/40',
+        // `open:flex` (not a bare `flex`): an unconditional `display` utility
+        // beats the browser's own `dialog:not([open]) { display: none }` rule
+        // (author CSS always wins over the UA stylesheet), which left this
+        // dialog laid out and pointer-intercepting in normal page flow even
+        // while "closed". Scoping to `open:` restores native hidden-by-default.
+        'border-border bg-elevated text-ink shadow-elevated open:flex open:flex-col border backdrop:bg-black/40',
         // Mobile: a bottom sheet at ~85% height. Desktop/tablet: a right-hand
         // panel at ~40% viewport width, per Doc 04's Responsive rules.
         'mt-auto mb-0 ml-auto h-[85dvh] max-h-[85dvh] w-full max-w-full rounded-t-[10px]',

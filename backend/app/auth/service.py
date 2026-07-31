@@ -343,7 +343,7 @@ async def list_users(
     team_id: uuid.UUID | None,
 ) -> list[UserOut]:
     stmt = sa.select(User).order_by(User.created_at)
-    if caller_role == "team_lead":  # team leads see their own team only (Doc 05 §6)
+    if caller_role in ("team_lead", "agent"):  # own team only (Doc 05 §6)
         stmt = stmt.where(User.team_id == caller.team_id)
     if team_id is not None:
         stmt = stmt.where(User.team_id == team_id)

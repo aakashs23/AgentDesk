@@ -144,9 +144,28 @@ def test_an_admin_can_change_a_users_role(client, db, tokens):
 
 
 def test_a_role_change_takes_effect_on_the_next_request(client, db, tokens):
-    """The JWT still carries the old role; authorization reads the row instead."""
+    """The JWT still carries the old role; authorization reads the row instead.
+
+    Probed with status-history, which is Team Lead+ (Doc 05 §6). `GET /users`
+    used to be the probe here, but Phase 11 opened it to agents for the Agent
+    Console's assignment and @mention lookups, so it no longer separates the two
+    roles.
+    """
     user = f.activated_user(client, db, tokens["admin"], "agent", team_id=f.make_team(db))
-    assert_status(client.get(f"{API}/users", headers=auth(user["token"])), 403)
+    ticket = f.make_ticket(client, tokens["requester"])
+    # Assigned to them, so the row is inside their scope before *and* after the
+    # promotion — otherwise the second call would 404 on row scope and say
+    # nothing about the role gate this test is actually about.
+    assert_status(
+        client.post(
+            f"{API}/tickets/{ticket['id']}/assign",
+            json={"assignee_id": user["id"]},
+            headers=auth(tokens["admin"]),
+        ),
+        200,
+    )
+    history = f"{API}/tickets/{ticket['id']}/status-history"
+    assert_status(client.get(history, headers=auth(user["token"])), 403)
 
     assert_status(
         client.patch(
@@ -155,7 +174,7 @@ def test_a_role_change_takes_effect_on_the_next_request(client, db, tokens):
         200,
     )
     assert_status(
-        client.get(f"{API}/users", headers=auth(user["token"])),
+        client.get(history, headers=auth(user["token"])),
         200,
         "the promoted user still had the old role on their existing token",
     )

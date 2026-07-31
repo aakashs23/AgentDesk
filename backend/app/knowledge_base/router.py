@@ -2,16 +2,19 @@
 
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query
-from pydantic import BaseModel, ConfigDict
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.auth.deps import CurrentUser, SessionDep, role_name
+from app.auth.deps import CurrentUser, SessionDep, require_role, role_name
 from app.knowledge_base import service
+from app.models import User
 from app.validators import SafeText
 
 router = APIRouter(prefix="/knowledge-base", tags=["knowledge base"])
+
+StaffUser = Annotated[User, Depends(require_role("agent", "team_lead", "admin"))]
 
 
 class ArticleSummary(BaseModel):
@@ -55,4 +58,48 @@ async def get_article(
     role = await role_name(session, caller.role_id)
     return ArticleOut.model_validate(
         await service.get_article_scoped(session, caller, role, article_id)
+    )
+
+
+class ArticleCreate(BaseModel):
+    title: SafeText = Field(min_length=1, max_length=200)
+    body: SafeText = Field(min_length=1, max_length=20_000)
+    category_id: uuid.UUID | None = None
+    source_ticket_id: uuid.UUID | None = None
+    status: Literal["draft", "published"] = "draft"
+
+
+class ArticleUpdate(BaseModel):
+    title: SafeText | None = Field(default=None, min_length=1, max_length=200)
+    body: SafeText | None = Field(default=None, min_length=1, max_length=20_000)
+    category_id: uuid.UUID | None = None
+    status: Literal["draft", "published"] | None = None
+
+
+@router.post("/articles", status_code=201)
+async def create_article(body: ArticleCreate, caller: StaffUser, session: SessionDep) -> ArticleOut:
+    role = await role_name(session, caller.role_id)
+    return ArticleOut.model_validate(
+        await service.create_article(
+            session,
+            caller,
+            role,
+            body.title,
+            body.body,
+            body.category_id,
+            body.source_ticket_id,
+            body.status,
+        )
+    )
+
+
+@router.patch("/articles/{article_id}")
+async def update_article(
+    article_id: uuid.UUID, body: ArticleUpdate, caller: StaffUser, session: SessionDep
+) -> ArticleOut:
+    role = await role_name(session, caller.role_id)
+    return ArticleOut.model_validate(
+        await service.update_article(
+            session, caller, role, article_id, body.model_dump(exclude_unset=True)
+        )
     )

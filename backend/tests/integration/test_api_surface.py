@@ -58,6 +58,9 @@ EXPECTED_ROUTES = {
     ("GET", "/api/v1/priorities"),
     ("GET", "/api/v1/knowledge-base/articles"),
     ("GET", "/api/v1/knowledge-base/articles/{article_id}"),
+    # Phase 11 — the Agent Console's KB creation loop (App Flow §19)
+    ("POST", "/api/v1/knowledge-base/articles"),
+    ("PATCH", "/api/v1/knowledge-base/articles/{article_id}"),
     ("GET", "/api/v1/csat"),
     ("POST", "/api/v1/csat"),
     ("GET", "/api/v1/tickets/{ticket_id}/ai"),
@@ -136,8 +139,9 @@ def test_every_feature_route_is_under_the_versioned_prefix(client):
 
 # Phase 10 filled several of these in for the Customer Portal — the read side of
 # categories/priorities/knowledge base, all of CSAT, and authenticated password
-# change. They are covered properly in test_portal_api.py now. What remains here
-# is the *write* half (admin configuration, Phase 12) plus genuinely unbuilt
+# change. They are covered properly in test_portal_api.py now. Phase 11 added the
+# knowledge-base write half for App Flow §19's creation loop (test_agent_api.py).
+# What remains here is admin configuration (Phase 12) plus genuinely unbuilt
 # features.
 MISSING_ENDPOINTS = {
     "audit log read API": [("GET", "/audit-logs")],
@@ -146,7 +150,6 @@ MISSING_ENDPOINTS = {
     "queue CRUD": [("GET", "/queues"), ("POST", "/queues")],
     "team CRUD": [("GET", "/teams"), ("POST", "/teams")],
     "SLA policy CRUD": [("GET", "/sla-policies"), ("POST", "/sla-policies")],
-    "knowledge base write API": [("POST", "/knowledge-base/articles")],
     "application settings": [("GET", "/settings"), ("PATCH", "/settings")],
     "bulk ticket operations": [("POST", "/tickets/bulk")],
     "ticket deletion": [("DELETE", "/tickets")],
