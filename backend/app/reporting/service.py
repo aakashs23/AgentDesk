@@ -110,6 +110,18 @@ async def dashboard_metrics(session: AsyncSession, caller: User, role: str) -> d
 # --- Report generators (columns, rows) ---
 
 
+def _day(column):
+    """Bucket a `timestamptz` into UTC days.
+
+    Bare `date_trunc('day', ts)` buckets in the *server's* timezone, so the same
+    rows produce different day buckets on a Postgres set to Asia/Kolkata than on
+    one set to UTC — and every caller (the API, the tests, the AI monitor chart)
+    reads those days as UTC dates. Converting first makes a report's days a
+    property of the data instead of the deployment.
+    """
+    return sa.func.date_trunc("day", sa.func.timezone("UTC", column))
+
+
 def _range(query, column, start: datetime | None, end: datetime | None):
     if start:
         query = query.where(column >= start)
@@ -178,7 +190,7 @@ async def _sla_compliance(session, ids, start, end):
 
 
 async def _ticket_trends(session, ids, start, end):
-    day = sa.func.date_trunc("day", Ticket.created_at).label("day")
+    day = _day(Ticket.created_at).label("day")
     q = (
         _range(
             sa.select(day, sa.func.count().label("count")).where(
@@ -290,7 +302,7 @@ async def _ai_performance_trend(session, ids, start, end):
     in Python: a SQL join between them double-counts, because one ticket can
     carry several drafts against a single classification.
     """
-    day = sa.func.date_trunc("day", AiClassificationHistory.created_at).label("day")
+    day = _day(AiClassificationHistory.created_at).label("day")
     cls_rows = (
         await session.execute(
             _range(
@@ -310,7 +322,7 @@ async def _ai_performance_trend(session, ids, start, end):
         )
     ).all()
 
-    draft_day = sa.func.date_trunc("day", AiDraftHistory.created_at).label("day")
+    draft_day = _day(AiDraftHistory.created_at).label("day")
     draft_rows = (
         await session.execute(
             _range(

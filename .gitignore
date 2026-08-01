@@ -234,3 +234,5 @@ dist/
 
 # Phase 5: trained DistilBERT classifier artifacts (retrainable via scripts/train_classifier.py)
 ml_models/
+
+settings.local.json

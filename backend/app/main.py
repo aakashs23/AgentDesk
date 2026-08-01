@@ -24,6 +24,8 @@ from app.auth.router import router as auth_router
 from app.auth.users_router import router as users_router
 from app.config import get_settings
 from app.db import engine
+from app.intake import email_service
+from app.intake.router import router as intake_router
 from app.knowledge_base.router import router as kb_router
 from app.log import setup_logging
 from app.notifications.router import router as notifications_router
@@ -40,11 +42,16 @@ logger = logging.getLogger("agentdesk")
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings = get_settings()
+    tasks = []
     # SLA monitor loop (Phase 6, TRD §11); interval 0 disables it
-    interval = get_settings().sla_scan_interval_seconds
-    task = asyncio.create_task(monitor.run_forever(interval)) if interval > 0 else None
+    if settings.sla_scan_interval_seconds > 0:
+        tasks.append(asyncio.create_task(monitor.run_forever(settings.sla_scan_interval_seconds)))
+    # Inbound mailbox poll (Phase 13, App Flow §11); needs a host and an interval
+    if settings.imap_host and settings.imap_poll_seconds > 0:
+        tasks.append(asyncio.create_task(email_service.poll_forever(settings.imap_poll_seconds)))
     yield
-    if task:
+    for task in tasks:
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await task
@@ -62,6 +69,7 @@ app.include_router(admin_router, prefix="/api/v1")
 app.include_router(admin_config_router, prefix="/api/v1")
 app.include_router(taxonomy_router, prefix="/api/v1")
 app.include_router(kb_router, prefix="/api/v1")
+app.include_router(intake_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(webhooks_router, prefix="/api/v1")
 app.include_router(search_router, prefix="/api/v1")

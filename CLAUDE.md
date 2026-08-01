@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-Phases 0–12 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation, Customer Portal, Agent Console, Admin Dashboard). All three client surfaces are now built. Next is Phase 13 (Multi-Channel Intake) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
+Phases 0–13 done (scaffolding, schema/migrations, API scaffolding, auth/RBAC, core ticket domain, AI pipeline, SLA + automation engines, notifications/webhooks, search + reporting, frontend foundation, Customer Portal, Agent Console, Admin Dashboard, multi-channel intake). All three client surfaces are built and all three intake channels (portal, email, chat) are live. Next is Phase 14 (Knowledge Base Completion) in [06 AgentDesk Implementation Plan.md](docs/06%20AgentDesk%20Implementation%20Plan.md).
 
 Phase 9 built the shell: `frontend/src/components` (base library + the AI-signature set), `frontend/src/shell` (top bar, role sidebar, bottom tabs, Cmd+K palette), `frontend/src/lib` (API client with single-flight token refresh, session store, theme). Routing is `react-router` v7 — the only frontend dependency added since Phase 0. Every route now renders a real screen; `pages/Placeholder.tsx` is gone.
 
@@ -39,6 +39,17 @@ Deliberately not built in Phase 12, with reasons at the code:
 - **Tag deletion.** No endpoint, and `ticket_tags` has no cascade in Doc 05.
 
 Reuse Phase 12 leaned on rather than duplicating: `components/ReportRunner.tsx` (extracted from Phase 11's Team Reports) backs both Reports & Analytics and the AI monitor, and `/admin/kb` mounts the Agent Console's KB screens — the API already scopes an Admin to every draft and author, so it is the same screen asked by a different role. Those screens now read their prefix from `useSurfaceBase()`.
+
+Phase 13 shipped multi-channel intake — `backend/app/intake/` (`parser.py` pure, `email_service.py`, `chat_service.py`, `router.py`), the portal chat widget (`frontend/src/pages/portal/ChatWidget.tsx`, mounted by `AppShell` on the portal surface only), the agent-side takeover screen (`frontend/src/pages/agent/Chats.tsx`, `/agent/chats`) and `frontend/src/lib/chat.ts` for `npm run selfcheck`. `ConversationHistory` finally has a model; migration 0001 always had the table.
+
+- **Email arrives two ways, one parser**: `POST /intake/email` (a provider webhook, guarded by `INBOUND_EMAIL_TOKEN` — unset means the route 503s rather than standing open) and an IMAP poll loop started from the lifespan when `IMAP_HOST` and `IMAP_POLL_SECONDS` are both set. Both call `handle_raw_email`.
+- **Thread matching order** (App Flow §11 step 6): `[AGT-123]` in the subject → `In-Reply-To`/`References` against `tickets.source_email_message_id` → same sender + same normalised subject on a still-open ticket within 7 days. The acknowledgment email carries the `[AGT-…]` tag, which is what makes step 1 work at all.
+- **Email never forks the domain**: new mail goes through `tickets.service.create_ticket`, replies through `create_comment`, attachments through `add_attachment` — so channel differences cannot drift from the portal's rules.
+
+Three schema-forced decisions in Phase 13, documented at the code:
+- **The manual review queue is a `queues` row** named `Manual Review`. Doc 05 defines no review table and the schema invariant forbids adding one; malformed mail becomes a ticket in that queue with the parse failure in its description, and the AI pipeline is deliberately not run on it.
+- **Unknown senders auto-provision a requester** (unusable password, claimable by password reset), because `tickets.requester_id` is NOT NULL. Mail with no readable sender at all files against `unknown-sender@agentdesk.invalid`.
+- **Chat session ownership is encoded in the id** as `{user_id}:{uuid4}`, since `conversation_history` has no owner column. A requester may touch only their own sessions (404, not 403); staff may read any, which is what §12 step 7's takeover needs. An agent posting to a session sets `speaker: "agent"` and stands the bot down permanently.
 
 Phase 5 resolved decisions (user-chosen, do not re-open silently): LLM = Gemini 2.5 Flash, embeddings = `gemini-embedding-001` at 1536 dims (matches migration 0001's `vector(1536)`), classifier = DistilBERT fine-tuned on synthetic seed data (`scripts/train_classifier.py` → `ml_models/classifier`, gitignored). `GEMINI_API_KEY` in `.env` gates the pipeline; without it ticket creation still works and the pipeline logs a skip. Still open: vector store beyond pgvector, final SLA thresholds, hosting target.
 
