@@ -1,5 +1,15 @@
 {
-  "description": "Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders.",
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -)",
+      "Bash(TEST_DATABASE_URL=\"postgresql+asyncpg://agentdesk:agentdesk@localhost:5432/agentdesk_ci_repro_test\" .venv/bin/pytest tests/performance/test_bulk_operations.py -q)",
+      "Bash(TEST_DATABASE_URL=\"postgresql+asyncpg://agentdesk:agentdesk@localhost:5432/agentdesk_ci_repro_test\" .venv/bin/pytest tests/performance/test_bulk_operations.py::test_the_search_index_is_actually_used -q)",
+      "Bash(TEST_DATABASE_URL=\"postgresql+asyncpg://agentdesk:agentdesk@localhost:5432/agentdesk_ci_full_test\" .venv/bin/pytest -q)",
+      "Bash(.venv/bin/ruff check *)",
+      "Bash(.venv/bin/pytest -q)",
+      "Bash(.venv/bin/python -c ' *)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -14,5 +24,6 @@
         ]
       }
     ]
-  }
+  },
+  "description": "Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders."
 }

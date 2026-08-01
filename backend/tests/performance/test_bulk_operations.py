@@ -190,8 +190,19 @@ def test_search_latency_is_acceptable_on_a_populated_table(client, db, tokens):
 
 def test_the_search_index_is_actually_used(client, db):
     """A sequential scan here would mean migration 0001's GIN index is not being
-    picked up — the query has to match the index expression exactly."""
-    with db.connect() as conn:
+    picked up — the query has to match the index expression exactly.
+
+    `SET LOCAL enable_seqscan = off` is what makes this deterministic. Without
+    it the test asserts a *planner choice*, which depends on how many tickets
+    happen to be in the table: on a fresh CI database (a few hundred rows) a seq
+    scan is genuinely cheaper and the planner is right to pick one, while a
+    long-lived local database has enough rows to tip the other way. Disabling
+    seq scans asks the question the docstring actually cares about — can this
+    query use the index at all — and a mismatched index expression still fails,
+    because Postgres falls back to a seq scan when the index is unusable.
+    """
+    with db.begin() as conn:  # transaction-scoped, so the setting cannot leak
+        conn.execute(sa.text("SET LOCAL enable_seqscan = off"))
         plan = "\n".join(
             row[0]
             for row in conn.execute(
@@ -202,9 +213,7 @@ def test_the_search_index_is_actually_used(client, db):
                 )
             )
         )
-    assert "ix_tickets_fts" in plan or "Bitmap" in plan, (
-        f"full-text search is not using an index:\n{plan}"
-    )
+    assert "ix_tickets_fts" in plan, f"full-text search is not using an index:\n{plan}"
 
 
 def test_report_generation_scales_to_the_whole_table(client, db, tokens):
