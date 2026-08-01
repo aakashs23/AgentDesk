@@ -30,6 +30,7 @@ import {
   setupProgress,
 } from '../src/lib/admin.ts'
 import { MAX_ATTACHMENT_BYTES, validateFile } from '../src/lib/attachments.ts'
+import { botIsAnswering, canRaiseTicket, chatPhase, requesterOf } from '../src/lib/chat.ts'
 import {
   formatBytes,
   formatTicketId,
@@ -282,5 +283,38 @@ assert.equal(formatRate(undefined), '—')
 
 assert.equal(humanise('team_lead'), 'Team lead')
 assert.equal(humanise('sla_breached'), 'Sla breached')
+
+// App Flow §12: who is answering decides which controls the widget offers.
+const msg = (speaker: 'user' | 'bot' | 'agent', id: string) => ({
+  id,
+  speaker,
+  message: 'x',
+  created_at: '2026-01-01T00:00:00Z',
+})
+const greeted = [msg('bot', '1')]
+const asked = [...greeted, msg('user', '2'), msg('bot', '3')]
+const takenOver = [...asked, msg('agent', '4')]
+
+assert.equal(chatPhase(greeted, null), 'greeting')
+assert.equal(chatPhase(asked, null), 'chatting')
+assert.equal(chatPhase(takenOver, null), 'with-agent')
+// A converted conversation is over regardless of who spoke last.
+assert.equal(chatPhase(takenOver, 'ticket-1'), 'converted')
+
+// The API rejects converting a chat with nothing in it, so the button is not
+// offered either — and never after it has already become a ticket.
+assert.equal(canRaiseTicket(greeted, null), false)
+assert.equal(canRaiseTicket(asked, null), true)
+assert.equal(canRaiseTicket(asked, 'ticket-1'), false)
+
+// §12 step 7: the bot stands down for good once an agent joins.
+assert.equal(botIsAnswering(asked), true)
+assert.equal(botIsAnswering(takenOver), false)
+
+// Session ownership lives in the id itself (see intake/chat_service.py).
+assert.equal(
+  requesterOf('7f3c1e2a-0000-0000-0000-000000000001:abc'),
+  '7f3c1e2a-0000-0000-0000-000000000001',
+)
 
 console.log('ui.selfcheck: all assertions passed')

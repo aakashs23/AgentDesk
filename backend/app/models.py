@@ -370,6 +370,17 @@ class Embedding(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
 
 
+class ConversationHistory(SQLModel, table=True):
+    __tablename__ = "conversation_history"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    ticket_id: uuid.UUID | None = Field(default=None, foreign_key="tickets.id")
+    session_id: str  # chat-widget session, exists before a ticket does
+    speaker: str  # user / bot / agent
+    message: str
+    created_at: datetime = Field(default_factory=_now, sa_type=DateTime(timezone=True))
+
+
 class KnowledgeBaseArticle(SQLModel, table=True):
     __tablename__ = "knowledge_base_articles"
 

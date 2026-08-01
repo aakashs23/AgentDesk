@@ -14,6 +14,7 @@ import { TemplatesAndBranding } from '../pages/admin/Templates'
 import { TicketConfiguration } from '../pages/admin/TicketConfig'
 import { UsersAndTeams } from '../pages/admin/Users'
 import { Webhooks } from '../pages/admin/Webhooks'
+import { LiveChats } from '../pages/agent/Chats'
 import { AgentKbArticle, AgentKnowledgeBase, KbArticleEditor } from '../pages/agent/KnowledgeBase'
 import { Queue } from '../pages/agent/Queue'
 import { SavedViews } from '../pages/agent/SavedViews'
@@ -69,6 +70,8 @@ export function AppRoutes() {
           <Route path="/agent/queue" element={<Queue />} />
           <Route path="/agent/tickets/:ticketId" element={<AgentTicketDetail />} />
           <Route path="/agent/views" element={<SavedViews />} />
+          {/* Human takeover of a live portal chat (App Flow §12 step 7). */}
+          <Route path="/agent/chats" element={<LiveChats />} />
           <Route path="/agent/kb" element={<AgentKnowledgeBase />} />
           {/* `new` before `:articleId`, or the editor is never reached. */}
           <Route path="/agent/kb/new" element={<KbArticleEditor />} />

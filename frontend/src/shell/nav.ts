@@ -6,6 +6,7 @@ import {
   Gauge,
   Inbox,
   LayoutDashboard,
+  MessageCircle,
   ListChecks,
   Plus,
   ScrollText,
@@ -50,6 +51,7 @@ const AGENT: NavGroup[] = [
     items: [
       { to: '/agent/queue', label: 'Ticket Queue', icon: Inbox },
       { to: '/agent/views', label: 'Saved Views', icon: ListChecks },
+      { to: '/agent/chats', label: 'Live Chats', icon: MessageCircle },
       { to: '/agent/kb', label: 'Knowledge Base', icon: BookOpen },
     ],
   },

@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
+    # Inbound email (Phase 13, App Flow §11). Two ways in, same parser:
+    # an IMAP poll loop (0 seconds = off) and POST /intake/email for a provider
+    # webhook, which is refused entirely unless the shared token is set.
+    imap_host: str = ""
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
+    imap_poll_seconds: int = 0
+    inbound_email_token: str = ""
+    support_email: str = "support@agentdesk.local"
     webhook_secret_encryption_key: str = ""
     slack_webhook_url: str = ""
     # Not in .env.example — dev default for the Vite server; override in deployment

@@ -4,6 +4,7 @@ import { Outlet } from 'react-router'
 import { useDialog } from '../components/useDialog'
 import { useUser } from '../lib/auth'
 import { useTheme } from '../lib/theme'
+import { ChatWidget } from '../pages/portal/ChatWidget'
 import { cn } from '../lib/ui'
 import { BottomTabBar } from './BottomTabBar'
 import { CommandPalette } from './CommandPalette'
@@ -91,6 +92,8 @@ export function AppShell({ basePath, searchPlaceholder }: AppShellProps) {
       </div>
 
       {isPortal && <BottomTabBar />}
+      {/* App Flow §12: the chat widget is a Customer Portal affordance. */}
+      {isPortal && <ChatWidget />}
 
       {!isPortal && (
         <dialog

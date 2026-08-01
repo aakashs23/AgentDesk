@@ -280,3 +280,33 @@ export const NOTIFICATION_TRIGGERS = [
 ] as const
 
 export type NotificationTrigger = (typeof NOTIFICATION_TRIGGERS)[number]
+
+// --- Chat widget (Phase 13; App Flow §12) ---
+
+export interface ChatMessage {
+  id: string
+  speaker: 'user' | 'bot' | 'agent'
+  message: string
+  created_at: string
+}
+
+export interface ChatSession {
+  session_id: string
+  ticket_id: string | null
+  messages: ChatMessage[]
+}
+
+/** One turn: what was just said, plus the articles the bot leaned on. */
+export interface ChatTurn {
+  messages: ChatMessage[]
+  articles: { id: string; title: string }[]
+}
+
+/** A live conversation an agent may join (App Flow §12 step 7). */
+export interface ChatSessionSummary {
+  session_id: string
+  requester_id: string
+  last_message_at: string
+  message_count: number
+  agent_joined: boolean
+}

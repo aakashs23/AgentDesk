@@ -36,6 +36,108 @@ CATEGORY_TREE = {
 }
 
 
+# Published KB articles, so self-service has something to serve: the New Ticket
+# form's suggestions, the chat widget's answers and global search all read this
+# table, and every one of them is a no-op against an empty knowledge base.
+# `embedding` stays null — generating one needs a live API key, which a seed
+# script must never require. Full-text and trigram matching work without it;
+# the vector half switches on when Phase 14 embeds articles on publish.
+KB_ARTICLES = [
+    (
+        "Login Issues",
+        "Resetting your AgentDesk password",
+        "If you cannot sign in, reset your password rather than retrying — six failed "
+        "attempts locks the account for 15 minutes.\n\n"
+        "1. On the sign-in screen, choose 'Forgot password'.\n"
+        "2. Enter the email address your account uses and submit.\n"
+        "3. Open the email titled 'Reset your AgentDesk password' and follow the link. "
+        "The link is single-use and expires after one hour.\n"
+        "4. Choose a new password of at least 12 characters.\n\n"
+        "If the email does not arrive within a few minutes, check your spam folder and "
+        "confirm you used the address your account was created with. Accounts created "
+        "for you by an administrator use your work address.",
+    ),
+    (
+        "Technical Support",
+        "VPN disconnects every hour",
+        "A VPN session that drops on a predictable schedule is almost always the "
+        "gateway's re-key interval rather than your network.\n\n"
+        "Try these in order:\n"
+        "1. Update the VPN client — releases before 5.2 fail to re-key silently.\n"
+        "2. Switch the connection profile from UDP to TCP. Re-keying survives a brief "
+        "packet loss on TCP; on UDP it does not.\n"
+        "3. On Wi-Fi, disable your adapter's power-saving option, which suspends the "
+        "radio during idle periods and kills the tunnel.\n\n"
+        "If it still drops at the same interval after all three, raise a ticket and "
+        "include the client version and whether you are on Wi-Fi or wired.",
+    ),
+    (
+        "Refunds",
+        "How refunds are processed",
+        "Refunds are issued to the original payment method. We cannot redirect a refund "
+        "to a different card or account.\n\n"
+        "Timing: refunds are approved within two business days of the request. Once "
+        "approved, card refunds take a further 5–10 business days to appear, depending "
+        "on your bank. Bank transfers usually settle in 3–5 business days.\n\n"
+        "Partial refunds are possible on annual plans — you are refunded the unused "
+        "whole months remaining. To request one, raise a ticket with your invoice "
+        "number and the reason.",
+    ),
+    (
+        "Invoices",
+        "Finding and downloading your invoices",
+        "Every invoice is available from Billing → Invoices in your account, going back "
+        "to the start of your subscription.\n\n"
+        "Select an invoice to download it as a PDF. Copies are also emailed to the "
+        "billing contact on the account each time one is issued.\n\n"
+        "To change the billing contact, the company name or the VAT/tax number printed "
+        "on an invoice, raise a ticket — those fields are locked after issue, so we "
+        "reissue the invoice rather than editing it.",
+    ),
+    (
+        "Bug Report",
+        "What to include when reporting a bug",
+        "A report we can reproduce is resolved far faster than one we cannot. Include:\n\n"
+        "- What you did, step by step, from a known starting point.\n"
+        "- What you expected to happen, and what happened instead.\n"
+        "- When it started, and whether it happens every time or intermittently.\n"
+        "- Your browser and operating system, plus the exact error text if there was one.\n"
+        "- A screenshot or short screen recording, attached to the ticket.\n\n"
+        "If the problem involves specific data, give us the ticket reference, invoice "
+        "number or account name involved rather than a description of it.",
+    ),
+]
+
+
+def _seed_kb_articles(conn) -> int:
+    """Published demo articles, idempotent by title so re-running never
+    duplicates them or overwrites an edit made in the Admin console."""
+    author_id = conn.execute(
+        sa.text(
+            "SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id "
+            "WHERE r.name = 'admin' LIMIT 1"
+        )
+    ).scalar()
+    categories = dict(conn.execute(sa.text("SELECT name, id FROM categories")).all())
+    inserted = 0
+    for category, title, body in KB_ARTICLES:
+        exists = conn.execute(
+            sa.text("SELECT 1 FROM knowledge_base_articles WHERE title = :t LIMIT 1"), {"t": title}
+        ).first()
+        if exists:
+            continue
+        conn.execute(
+            sa.text(
+                "INSERT INTO knowledge_base_articles "
+                "(title, body, category_id, status, author_id, published_at) "
+                "VALUES (:title, :body, :cat, 'published', :author, now())"
+            ),
+            {"title": title, "body": body, "cat": categories.get(category), "author": author_id},
+        )
+        inserted += 1
+    return inserted
+
+
 def _seed_notification_templates(conn) -> int:
     """One default template per (trigger_type, channel), idempotent (Phase 7).
 
@@ -86,6 +188,8 @@ def main() -> None:
             print("Base data already seeded — users exist.")
             added = _seed_notification_templates(conn)
             print(f"Notification templates: {added} inserted (existing left untouched).")
+            articles = _seed_kb_articles(conn)
+            print(f"Knowledge base articles: {articles} inserted (existing left untouched).")
             return
 
         team_id = uuid.uuid4()
@@ -152,6 +256,7 @@ def main() -> None:
         )
 
         _seed_notification_templates(conn)
+        _seed_kb_articles(conn)
 
     print(f"Seeded. Demo logins: *@agentdesk.dev / {DEMO_PASSWORD}")
 

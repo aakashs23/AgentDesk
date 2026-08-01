@@ -83,6 +83,13 @@ EXPECTED_ROUTES = {
     ("DELETE", "/api/v1/admin/sla-rules/{rule_id}"),
     ("GET", "/api/v1/admin/audit-logs"),
     ("GET", "/api/v1/admin/audit-logs/entity-types"),
+    # Phase 13 — multi-channel intake (App Flow §11–12)
+    ("POST", "/api/v1/intake/email"),
+    ("POST", "/api/v1/chat/sessions"),
+    ("GET", "/api/v1/chat/sessions"),
+    ("GET", "/api/v1/chat/sessions/{session_id}"),
+    ("POST", "/api/v1/chat/sessions/{session_id}/messages"),
+    ("POST", "/api/v1/chat/sessions/{session_id}/end"),
     ("GET", "/api/v1/csat"),
     ("POST", "/api/v1/csat"),
     ("GET", "/api/v1/tickets/{ticket_id}/ai"),
@@ -195,17 +202,8 @@ def test_unimplemented_feature_is_still_absent(client, tokens, feature, method, 
 
 # `csat_responses` used to be listed here as schema-without-a-feature. Phase 10
 # gave it an API for the Customer Portal's survey modal; see test_portal_api.py.
-
-
-def test_the_conversation_history_table_exists_but_has_no_api(db):
-    """Same for `conversation_history`: created by migration 0001, unused by the
-    AI pipeline, which persists to ai_classification_history / ai_draft_history."""
-    import sqlalchemy as sa
-
-    with db.connect() as conn:
-        assert conn.execute(sa.text("SELECT to_regclass('public.conversation_history')")).scalar()
-        rows = conn.execute(sa.text("SELECT count(*) FROM conversation_history")).scalar_one()
-    assert rows == 0, "something is writing conversation_history — it should be tested"
+# `conversation_history` was the last of them: Phase 13's chat widget writes it,
+# and test_intake.py covers it.
 
 
 # --- Health probes ---
