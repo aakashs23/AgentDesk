@@ -1,10 +1,10 @@
 /**
  * The AI-signature components.
  *
- * Doc 04's Signature Element rule: the brand gradient means exactly one thing
- * across the product — "the model produced or influenced this". These
- * components, the primary CTA, the active nav indicator and the Login hero are
- * the only places it may appear. Anything a human wrote stays flat.
+ * The signature rule survived Doc 07, its carrier didn't: the flat `ai` violet
+ * now means exactly one thing across the product — "the model produced or
+ * influenced this" — and unlike Doc 04's gradient it appears *only* here, never
+ * on a CTA or a nav indicator. Anything a human wrote stays neutral.
  */
 import { Sparkles } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -24,16 +24,16 @@ export function AIInsightChip({ label, confidence, className }: AIInsightChipPro
 
   return (
     <span
-      // Doc 04 Accessibility: the gradient is never the only signal — the spark
-      // glyph and this label carry the same meaning without colour.
+      // The violet is never the only signal — the spark glyph and this label
+      // carry the same meaning without colour.
       aria-label={
         percent === null
           ? `AI-suggested: ${label}`
           : `AI-suggested: ${label}, ${percent} percent confidence`
       }
       className={cn(
-        'rounded-pill bg-linear-to-r from-brand-start to-brand-end text-caption',
-        'inline-flex items-center gap-4 px-12 py-4 font-medium tracking-wide text-white uppercase',
+        'rounded-pill bg-ai-tint text-ai text-caption',
+        'inline-flex items-center gap-4 px-12 py-4 font-medium tracking-wide uppercase',
         className,
       )}
     >
@@ -54,8 +54,8 @@ export interface DiffCalloutProps {
 
 /**
  * The diff-style change callout — a reclassification, a matched SLA rule.
- * Monospace and bordered, removed line muted/struck, added line in the
- * gradient's start colour (Doc 04, "Code/diff-style callouts").
+ * Monospace and bordered, removed line muted/struck, added line in the AI
+ * violet, since the addition is what the model decided.
  */
 export function DiffCallout({ removed, added, caption }: DiffCalloutProps) {
   return (
@@ -69,7 +69,7 @@ export function DiffCallout({ removed, added, caption }: DiffCalloutProps) {
             {removed}
           </div>
         )}
-        <div className="text-brand-start">
+        <div className="text-ai">
           <span aria-hidden>+ </span>
           <span className="sr-only">AI set: </span>
           {added}
@@ -87,8 +87,8 @@ export interface AIDraftDrawerProps extends Omit<DrawerProps, 'header' | 'title'
 
 /**
  * Shell for the AI Draft Response drawer. Phase 11 fills in the body (the draft
- * text, approve/edit/reject controls); what lives here is the part Doc 04
- * mandates: the gradient header is the first thing visible on open, never
+ * text, approve/edit/reject controls); what lives here is the part that matters
+ * either way: the provenance header is the first thing visible on open, never
  * something the agent has to scroll past.
  */
 export function AIDraftDrawer({
@@ -104,11 +104,11 @@ export function AIDraftDrawer({
       header={
         <div
           className={cn(
-            'bg-linear-to-r from-brand-start to-brand-end px-24 py-16 text-white',
+            'bg-ai-tint text-ai border-divider border-b px-24 py-16',
             generating && 'ai-shimmer',
           )}
         >
-          <p className="text-caption flex items-center gap-8 tracking-wide uppercase">
+          <p className="text-caption flex items-center gap-8 font-medium tracking-wide uppercase">
             <Sparkles aria-hidden size={16} strokeWidth={1.5} />
             {generating ? 'Drafting a response…' : 'AI-generated — review before sending'}
           </p>

@@ -22,7 +22,7 @@ export function Tooltip({ label, side = 'right', children }: TooltipProps) {
       <span
         role="tooltip"
         className={cn(
-          'rounded-control border-border bg-elevated text-ink text-body-sm shadow-elevated',
+          'rounded-control border-border bg-elevated text-ink text-body-sm shadow-overlay',
           'pointer-events-none absolute z-50 w-max border px-8 py-4 opacity-0',
           // Doc 04: ~400ms delay in, none out — so it doesn't flash on every
           // incidental mouse pass, but disappears immediately on leave.

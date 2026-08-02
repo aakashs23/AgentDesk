@@ -100,7 +100,7 @@ export function TicketDetail() {
 
       <div className="mt-16 flex flex-wrap items-start justify-between gap-16">
         <div>
-          <h1 className="font-display text-h1 font-semibold">{data.subject}</h1>
+          <h1 className="text-h1 font-semibold">{data.subject}</h1>
           <p className="text-data text-muted mt-8 font-mono">{data.ref}</p>
         </div>
         <StatusPill status={data.status} />
@@ -172,7 +172,7 @@ function AiProcessingBanner() {
       className="ai-shimmer rounded-card border-border mt-24 border p-16"
     >
       <p className="text-body flex items-center gap-8">
-        <Sparkles aria-hidden size={16} strokeWidth={1.5} className="text-brand-start" />
+        <Sparkles aria-hidden size={16} strokeWidth={1.5} className="text-ai" />
         AgentDesk is reviewing your ticket and routing it to the right team.
       </p>
     </div>
@@ -272,8 +272,8 @@ function Conversation({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink w-full border p-12',
-              'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+              'placeholder:text-muted focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />

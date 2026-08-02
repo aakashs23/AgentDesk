@@ -11,7 +11,7 @@ export function BottomTabBar() {
   return (
     <nav
       aria-label="Main"
-      className="border-border bg-canvas fixed inset-x-0 bottom-0 z-40 flex border-t md:hidden"
+      className="border-divider bg-surface fixed inset-x-0 bottom-0 z-40 flex border-t md:hidden"
     >
       {PORTAL_TABS.map((tab) => (
         <NavLink
@@ -23,10 +23,11 @@ export function BottomTabBar() {
               'text-caption flex min-h-[56px] flex-1 flex-col items-center justify-center gap-4',
               'transition-colors duration-micro',
               isActive
-                ? // Colour is never the only signal — the active tab also gains
-                  // a top accent bar and a medium weight.
-                  'text-ink border-brand-start border-t-2 font-medium'
-                : 'text-muted border-t-2 border-transparent',
+                ? // Tinting the icon and label is what a tab bar does on both
+                  // mobile platforms; the weight change keeps the state legible
+                  // without colour. An accent rail here would be a web-ism.
+                  'text-primary font-medium'
+                : 'text-muted',
               focusRing,
             )
           }

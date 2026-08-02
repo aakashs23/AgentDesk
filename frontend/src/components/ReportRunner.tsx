@@ -77,7 +77,7 @@ export function ReportRunner({ reports, formats = ['csv'], children }: ReportRun
             value={reportType}
             onChange={(e) => setReportType(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] min-w-[240px] border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] min-w-[240px] border px-12',
               focusRing,
             )}
           >
@@ -98,7 +98,7 @@ export function ReportRunner({ reports, formats = ['csv'], children }: ReportRun
             max={end || undefined}
             onChange={(e) => setStart(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] border px-12',
               focusRing,
             )}
           />
@@ -111,7 +111,7 @@ export function ReportRunner({ reports, formats = ['csv'], children }: ReportRun
             min={start || undefined}
             onChange={(e) => setEnd(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] border px-12',
               focusRing,
             )}
           />
@@ -128,7 +128,7 @@ export function ReportRunner({ reports, formats = ['csv'], children }: ReportRun
               href={`/api/v1/reports/${ready.id}/export?format=${format}`}
               download
               className={cn(
-                'text-body-sm text-brand-start font-medium underline underline-offset-4',
+                'text-body-sm text-primary font-medium underline underline-offset-4',
                 focusRing,
               )}
             >

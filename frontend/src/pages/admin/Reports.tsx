@@ -19,8 +19,8 @@ const REPORTS = [
  */
 export function AdminReports() {
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Reports &amp; Analytics</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Reports &amp; Analytics</h1>
       <p className="text-body text-muted mt-8">
         Org-wide, across every team and queue. Generation runs in the background and the table fills
         in when it finishes.

@@ -27,7 +27,7 @@ export function KnowledgeBaseSearch() {
 
   return (
     <div className="mx-auto max-w-[760px]">
-      <h1 className="font-display text-h1 font-semibold">Knowledge Base</h1>
+      <h1 className="text-h1 font-semibold">Knowledge Base</h1>
       <p className="text-body text-muted mt-8">
         Search our guides — you may find an answer faster than raising a ticket.
       </p>
@@ -46,8 +46,8 @@ export function KnowledgeBaseSearch() {
           placeholder="Search articles…"
           aria-label="Search articles"
           className={cn(
-            'rounded-control border-border bg-canvas text-ink h-[44px] w-full border pr-12 pl-32',
-            'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+            'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border pr-12 pl-32',
+            'placeholder:text-muted focus:border-primary transition-colors duration-micro',
             focusRing,
           )}
         />
@@ -110,7 +110,7 @@ function ArticlePreview({ article }: { article: KbArticleSummary }) {
       <Link
         to={`/portal/kb/${article.id}`}
         className={cn(
-          'text-body-sm text-brand-start font-medium underline underline-offset-4',
+          'text-body-sm text-primary font-medium underline underline-offset-4',
           focusRing,
         )}
       >
@@ -158,7 +158,7 @@ export function KbArticleDetail() {
 
       {article.isSuccess && (
         <article className="mt-16">
-          <h1 className="font-display text-h1 font-semibold">{article.data.title}</h1>
+          <h1 className="text-h1 font-semibold">{article.data.title}</h1>
           <p className="text-body-sm text-muted mt-8">
             Updated{' '}
             <time dateTime={article.data.updated_at}>{relativeTime(article.data.updated_at)}</time>

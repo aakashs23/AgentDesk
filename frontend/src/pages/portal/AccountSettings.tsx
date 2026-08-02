@@ -5,12 +5,12 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { Input } from '../../components/Input'
+import { Toggle } from '../../components/Toggle'
 import { ApiError, api } from '../../lib/api'
 import { updateMe, useUser } from '../../lib/auth'
 import { useTheme } from '../../lib/theme'
 import { toast } from '../../lib/toast'
 import { NOTIFICATION_TRIGGERS, type NotificationTrigger } from '../../lib/types'
-import { cn, focusRing } from '../../lib/ui'
 
 const TRIGGER_LABELS: Record<NotificationTrigger, string> = {
   ticket_assigned: 'My ticket is assigned',
@@ -27,7 +27,7 @@ const TRIGGER_LABELS: Record<NotificationTrigger, string> = {
 export function AccountSettings() {
   return (
     <div className="mx-auto flex max-w-[640px] flex-col gap-32">
-      <h1 className="font-display text-h1 font-semibold">Account Settings</h1>
+      <h1 className="text-h1 font-semibold">Account Settings</h1>
       <ProfileSection />
       <PasswordSection />
       <NotificationSection />
@@ -49,7 +49,7 @@ function ProfileSection() {
 
   return (
     <Card className="flex flex-col gap-16">
-      <h2 className="font-display text-h3 font-semibold">Profile</h2>
+      <h2 className="text-h3 font-semibold">Profile</h2>
       <Input
         label="Full name"
         value={fullName}
@@ -113,7 +113,7 @@ function PasswordSection() {
 
   return (
     <Card className="flex flex-col gap-16">
-      <h2 className="font-display text-h3 font-semibold">Password</h2>
+      <h2 className="text-h3 font-semibold">Password</h2>
       <form onSubmit={onSubmit} className="flex flex-col gap-16" noValidate>
         <Input
           label="Current password"
@@ -184,7 +184,7 @@ function NotificationSection() {
 
   return (
     <Card className="flex flex-col gap-16">
-      <h2 className="font-display text-h3 font-semibold">Notifications</h2>
+      <h2 className="text-h3 font-semibold">Notifications</h2>
       <p className="text-body-sm text-muted">Choose how you'd like to hear from us.</p>
 
       <div className="overflow-x-auto">
@@ -203,17 +203,14 @@ function NotificationSection() {
               <tr key={trigger} className="border-border border-b last:border-0">
                 <td className="text-body py-12">{TRIGGER_LABELS[trigger]}</td>
                 {(['email', 'in_app'] as const).map((channel) => (
-                  <td key={channel} className="py-12 text-center">
-                    <input
-                      type="checkbox"
-                      checked={isOn(trigger, channel)}
-                      onChange={() => toggle(trigger, channel)}
-                      aria-label={`${TRIGGER_LABELS[trigger]} — ${channel === 'email' ? 'email' : 'in-app'}`}
-                      className={cn(
-                        'size-[20px] cursor-pointer accent-[var(--color-brand-start)]',
-                        focusRing,
-                      )}
-                    />
+                  <td key={channel} className="py-4">
+                    <span className="flex justify-center">
+                      <Toggle
+                        checked={isOn(trigger, channel)}
+                        onChange={() => toggle(trigger, channel)}
+                        aria-label={`${TRIGGER_LABELS[trigger]} — ${channel === 'email' ? 'email' : 'in-app'}`}
+                      />
+                    </span>
                   </td>
                 ))}
               </tr>
@@ -241,7 +238,7 @@ function AppearanceSection() {
   return (
     <Card className="flex flex-wrap items-center justify-between gap-16">
       <div>
-        <h2 className="font-display text-h3 font-semibold">Appearance</h2>
+        <h2 className="text-h3 font-semibold">Appearance</h2>
         <p className="text-body-sm text-muted mt-4">
           Currently using {mode} mode. Your choice is saved to your account.
         </p>

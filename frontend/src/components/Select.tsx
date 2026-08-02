@@ -17,7 +17,7 @@ export function Select({ label, className, ...props }: SelectProps) {
     <select
       {...props}
       className={cn(
-        'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
+        'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
         focusRing,
         className,
       )}

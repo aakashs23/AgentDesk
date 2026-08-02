@@ -9,6 +9,7 @@ import { Input } from '../../components/Input'
 import { ConfirmModal, Modal } from '../../components/Modal'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Select } from '../../components/Select'
+import { Toggle } from '../../components/Toggle'
 import { ApiError, api } from '../../lib/api'
 import { TRIGGERS, humanise } from '../../lib/admin'
 import { toast } from '../../lib/toast'
@@ -52,10 +53,10 @@ export function Webhooks() {
   })
 
   return (
-    <div className="mx-auto max-w-[1440px]">
+    <div>
       <div className="flex flex-wrap items-center justify-between gap-16">
         <div>
-          <h1 className="font-display text-h1 font-semibold">Webhooks</h1>
+          <h1 className="text-h1 font-semibold">Webhooks</h1>
           <p className="text-body text-muted mt-8">
             Outbound events, signed with a per-webhook secret so the receiver can verify them.
           </p>
@@ -86,46 +87,44 @@ export function Webhooks() {
           />
         )}
 
-        <ul className="flex flex-col gap-8">
-          {(webhooks.data ?? []).map((webhook) => (
-            <li key={webhook.id}>
-              <Card className="p-16">
-                <div className="flex flex-wrap items-center gap-16">
-                  <div className="min-w-[240px] flex-1">
-                    <p className="text-body text-ink font-medium">{humanise(webhook.event_type)}</p>
-                    <p className="text-body-sm text-muted mt-4 truncate font-mono">
-                      {webhook.target_url}
-                    </p>
+        {(webhooks.data ?? []).length > 0 && (
+          <Card className="overflow-hidden p-0">
+            <ul>
+              {(webhooks.data ?? []).map((webhook) => (
+                <li key={webhook.id} className="border-divider p-16 not-last:border-b">
+                  <div className="flex flex-wrap items-center gap-16">
+                    <div className="min-w-[240px] flex-1">
+                      <p className="text-body text-ink font-medium">
+                        {humanise(webhook.event_type)}
+                      </p>
+                      <p className="text-body-sm text-muted mt-4 truncate font-mono">
+                        {webhook.target_url}
+                      </p>
+                    </div>
+                    {/* One control, not a pill plus a button saying the same thing
+                        twice — the switch is both the state and the way to change it. */}
+                    <Toggle
+                      checked={webhook.is_active}
+                      onChange={() => toggle.mutate(webhook)}
+                      label={webhook.is_active ? 'Active' : 'Paused'}
+                    />
+                    <Button
+                      size="sm"
+                      onClick={() => setExpanded(expanded === webhook.id ? null : webhook.id)}
+                      aria-expanded={expanded === webhook.id}
+                    >
+                      Deliveries
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setDeleting(webhook)}>
+                      Remove
+                    </Button>
                   </div>
-                  <span
-                    className={cn(
-                      'rounded-pill text-caption px-12 py-4 font-medium tracking-wide uppercase',
-                      webhook.is_active
-                        ? 'bg-success text-white'
-                        : 'border-border text-muted border',
-                    )}
-                  >
-                    {webhook.is_active ? 'Active' : 'Paused'}
-                  </span>
-                  <Button size="sm" onClick={() => toggle.mutate(webhook)}>
-                    {webhook.is_active ? 'Pause' : 'Activate'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setExpanded(expanded === webhook.id ? null : webhook.id)}
-                    aria-expanded={expanded === webhook.id}
-                  >
-                    Deliveries
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDeleting(webhook)}>
-                    Remove
-                  </Button>
-                </div>
-                {expanded === webhook.id && <Deliveries webhookId={webhook.id} />}
-              </Card>
-            </li>
-          ))}
-        </ul>
+                  {expanded === webhook.id && <Deliveries webhookId={webhook.id} />}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
 
       {creating && <RegisterModal onClose={() => setCreating(false)} />}

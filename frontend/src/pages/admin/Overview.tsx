@@ -8,6 +8,7 @@ import { Card } from '../../components/Card'
 import { EmptyState, ErrorState } from '../../components/EmptyState'
 import { SkeletonRows } from '../../components/Skeleton'
 import { api } from '../../lib/api'
+import { chartAxis, chartCursor, chartGrid, chartTooltip } from '../../lib/charts'
 import { formatDuration } from '../../lib/agent'
 import { formatRate } from '../../lib/admin'
 import type { DashboardMetrics, ReportOut } from '../../lib/types'
@@ -19,9 +20,8 @@ import { SetupBanner } from './Setup'
  * `/dashboard/metrics` the Team Lead sees, unscoped because
  * `scope_tickets_to_caller` returns `true` for an Admin.
  *
- * The AI snapshot on the right is the one place on this screen carrying the
- * brand gradient: Doc 04's Signature Element means "a model produced this", and
- * an open-ticket count did not.
+ * The AI snapshot on the right is the one place on this screen carrying the AI
+ * violet: it means "a model produced this", and an open-ticket count did not.
  */
 export function AdminOverview() {
   const metrics = useQuery({
@@ -30,8 +30,8 @@ export function AdminOverview() {
   })
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Overview</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Overview</h1>
       <p className="text-body text-muted mt-8">
         Everything across the organisation — every queue, every team.
       </p>
@@ -78,7 +78,7 @@ export function AdminOverview() {
 function Stat({ label, value, to }: { label: string; value: string; to?: string }) {
   const body = (
     <>
-      <p className="font-display text-h1 font-semibold tabular-nums">{value}</p>
+      <p className="text-h1 font-semibold tabular-nums">{value}</p>
       <p className="text-caption text-muted mt-4 tracking-wide uppercase">{label}</p>
     </>
   )
@@ -95,7 +95,7 @@ function Stat({ label, value, to }: { label: string; value: string; to?: string 
 function Workload({ rows }: { rows: DashboardMetrics['agent_workload'] }) {
   return (
     <Card>
-      <h2 className="text-h3 font-display font-semibold">Open tickets by agent</h2>
+      <h2 className="text-h3 font-semibold">Open tickets by agent</h2>
       {rows.length === 0 ? (
         <EmptyState icon={Users} title="Nothing assigned anywhere right now" />
       ) : (
@@ -103,27 +103,11 @@ function Workload({ rows }: { rows: DashboardMetrics['agent_workload'] }) {
           <div className="mt-24 h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={rows}>
-                <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                <XAxis
-                  dataKey="full_name"
-                  tick={{ fill: 'var(--color-muted)', fontSize: 12 }}
-                  stroke="var(--color-border)"
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: 'var(--color-muted)', fontSize: 12 }}
-                  stroke="var(--color-border)"
-                />
-                <Tooltip
-                  cursor={{ fill: 'var(--color-surface)' }}
-                  contentStyle={{
-                    background: 'var(--color-elevated)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-card)',
-                    color: 'var(--color-ink)',
-                  }}
-                />
-                <Bar dataKey="open_tickets" fill="var(--color-brand-start)" radius={4} />
+                <CartesianGrid {...chartGrid} />
+                <XAxis dataKey="full_name" {...chartAxis} />
+                <YAxis allowDecimals={false} {...chartAxis} />
+                <Tooltip cursor={chartCursor} {...chartTooltip} />
+                <Bar dataKey="open_tickets" fill="var(--color-primary-fill)" radius={4} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -168,11 +152,11 @@ function AiSnapshot() {
   return (
     <Card>
       <div className="flex items-center justify-between gap-12">
-        <h2 className="text-h3 font-display font-semibold">AI performance</h2>
+        <h2 className="text-h3 font-semibold">AI performance</h2>
         <Link
           to="/admin/ai"
           className={cn(
-            'text-body-sm text-brand-start inline-flex items-center gap-4 font-medium',
+            'text-body-sm text-primary inline-flex items-center gap-4 font-medium',
             focusRing,
           )}
         >

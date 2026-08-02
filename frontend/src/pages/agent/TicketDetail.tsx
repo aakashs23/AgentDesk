@@ -108,7 +108,7 @@ export function AgentTicketDetail() {
 
       <div className="mt-16 flex flex-wrap items-start justify-between gap-16">
         <div className="min-w-0">
-          <h1 className="font-display text-h1 font-semibold">{data.subject}</h1>
+          <h1 className="text-h1 font-semibold">{data.subject}</h1>
           <p className="text-data text-muted mt-8 font-mono">{data.ref}</p>
         </div>
         <StatusPill status={data.status} />
@@ -121,7 +121,8 @@ export function AgentTicketDetail() {
           type="button"
           onClick={() => setDraft(pendingDrafts[0])}
           className={cn(
-            'bg-linear-to-r from-brand-start to-brand-end rounded-card mt-24 flex w-full cursor-pointer items-center gap-12 px-24 py-16 text-left text-white',
+            'bg-ai-tint text-ai rounded-card border-ai/20 mt-24 flex w-full cursor-pointer items-center gap-12 border px-24 py-16 text-left',
+            'transition-colors duration-micro hover:bg-ai/15',
             focusRing,
           )}
         >
@@ -203,7 +204,7 @@ export function AgentTicketDetail() {
         <Tabs
           tabs={TABS.map((t) =>
             t.id === 'insights' && pendingDrafts.length > 0
-              ? { ...t, badge: <span className="bg-brand-start size-[8px] rounded-pill" /> }
+              ? { ...t, badge: <span className="bg-ai size-[8px] rounded-pill" /> }
               : t,
           )}
           active={tab}
@@ -381,7 +382,7 @@ function Thread({
 
 function AiBadge() {
   return (
-    <span className="rounded-pill bg-linear-to-r from-brand-start to-brand-end text-caption inline-flex items-center gap-4 px-12 py-4 font-medium tracking-wide text-white uppercase">
+    <span className="rounded-pill bg-ai-tint text-ai text-caption inline-flex items-center gap-4 px-12 py-4 font-medium tracking-wide uppercase">
       <Sparkles aria-hidden size={16} strokeWidth={1.5} />
       AI-drafted
     </span>
@@ -517,7 +518,7 @@ function ActivityFeed({ ticket, staff }: { ticket: Ticket; staff: DirectoryUser[
               aria-hidden
               className={cn(
                 'rounded-pill mt-[6px] size-[8px] shrink-0',
-                entry.kind === 'ai' && 'bg-linear-to-r from-brand-start to-brand-end',
+                entry.kind === 'ai' && 'bg-ai',
                 entry.kind === 'human' && 'bg-ink',
                 entry.kind === 'system' && 'bg-muted',
               )}
@@ -526,7 +527,7 @@ function ActivityFeed({ ticket, staff }: { ticket: Ticket; staff: DirectoryUser[
               <p
                 className={cn(
                   'text-body-sm',
-                  entry.kind === 'ai' && 'text-gradient font-medium',
+                  entry.kind === 'ai' && 'text-ai font-medium',
                   entry.kind === 'human' && 'text-ink',
                   entry.kind === 'system' && 'text-muted',
                 )}

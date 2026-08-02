@@ -22,7 +22,7 @@ export interface TabsProps {
  */
 export function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div role="tablist" className="border-border flex gap-24 border-b">
+    <div role="tablist" className="border-divider flex gap-24 border-b">
       {tabs.map((tab) => {
         const selected = tab.id === active
         return (
@@ -35,9 +35,7 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
             className={cn(
               'text-body -mb-px cursor-pointer border-b-2 px-4 pb-12 font-medium',
               'transition-colors duration-micro flex items-center gap-8',
-              selected
-                ? 'border-brand-start text-ink'
-                : 'text-muted hover:text-ink border-transparent',
+              selected ? 'border-primary text-ink' : 'text-muted hover:text-ink border-transparent',
               focusRing,
             )}
           >

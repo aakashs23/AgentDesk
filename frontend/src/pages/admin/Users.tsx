@@ -32,8 +32,8 @@ export function UsersAndTeams() {
   const teams = useTeams()
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Users &amp; Teams</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Users &amp; Teams</h1>
       <p className="text-body text-muted mt-8">
         Provision accounts, set roles, and decide who sees which queues.
       </p>
@@ -83,8 +83,8 @@ function UserList({ teams }: { teams: Team[] }) {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Name or email…"
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
-              'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
+              'placeholder:text-muted focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />
@@ -102,7 +102,7 @@ function UserList({ teams }: { teams: Team[] }) {
             type="checkbox"
             checked={showInactive}
             onChange={(e) => setShowInactive(e.target.checked)}
-            className={cn('accent-brand-start size-[16px]', focusRing)}
+            className={cn('accent-primary size-[16px]', focusRing)}
           />
           <span className="text-body-sm">Show deactivated</span>
         </label>
@@ -409,7 +409,7 @@ function TeamList() {
   return (
     <>
       <Card className="mt-24">
-        <h2 className="text-h3 font-display font-semibold">New team</h2>
+        <h2 className="text-h3 font-semibold">New team</h2>
         <TeamCreateForm />
       </Card>
 

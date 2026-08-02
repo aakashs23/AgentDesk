@@ -70,14 +70,14 @@ export function Queue() {
   )
 
   return (
-    <div className="mx-auto max-w-[1440px]">
+    <div>
       <div className="flex flex-wrap items-center justify-between gap-16">
-        <h1 className="font-display text-h1 font-semibold">Ticket Queue</h1>
+        <h1 className="text-h1 font-semibold">Ticket Queue</h1>
         {Object.keys(applied).length > 0 && (
           <button
             type="button"
             onClick={() => setParams({ tab })}
-            className={cn('text-body-sm text-brand-start cursor-pointer font-medium', focusRing)}
+            className={cn('text-body-sm text-primary cursor-pointer font-medium', focusRing)}
           >
             Clear saved view
           </button>
@@ -111,23 +111,29 @@ export function Queue() {
           />
         )}
 
-        <ul className="flex flex-col gap-8">
-          {visible.map((ticket) => (
-            <QueueRow
-              key={ticket.id}
-              ticket={ticket}
-              priority={ticket.priority_id ? priorityById.get(ticket.priority_id) : undefined}
-              assignee={ticket.assignee_id ? staffById.get(ticket.assignee_id) : undefined}
-            />
-          ))}
-        </ul>
+        {/* One surface holding divided rows, not a card per ticket: Doc 07 §9
+            makes a queue a table, and fifty stacked shadows is not a table. */}
+        {visible.length > 0 && (
+          <Card className="overflow-hidden p-0">
+            <ul>
+              {visible.map((ticket) => (
+                <QueueRow
+                  key={ticket.id}
+                  ticket={ticket}
+                  priority={ticket.priority_id ? priorityById.get(ticket.priority_id) : undefined}
+                  assignee={ticket.assignee_id ? staffById.get(ticket.assignee_id) : undefined}
+                />
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
     </div>
   )
 }
 
-/** Doc 04's inbox-style row: avatar chip, title, solid priority pill, counts,
- *  relative timestamp. Dense on purpose — this is the screen agents live in. */
+/** Inbox-style row: avatar chip, title, solid priority pill, channel, relative
+ *  timestamp. Dense on purpose — this is the screen agents live in. */
 function QueueRow({
   ticket,
   priority,
@@ -138,42 +144,43 @@ function QueueRow({
   assignee?: { full_name: string; id: string }
 }) {
   return (
-    <li>
-      <Card interactive className="p-0">
-        <Link
-          to={`/agent/tickets/${ticket.id}`}
-          className={cn('flex items-center gap-12 p-12 md:gap-16', focusRing)}
-        >
-          {assignee ? (
-            <Avatar name={assignee.full_name} seed={assignee.id} size="md" />
-          ) : (
-            <span
-              aria-label="Unassigned"
-              title="Unassigned"
-              className="border-border text-muted text-caption rounded-pill flex size-[32px] shrink-0 items-center justify-center border border-dashed"
-            >
-              ?
+    <li className="border-divider not-last:border-b">
+      <Link
+        to={`/agent/tickets/${ticket.id}`}
+        className={cn(
+          'hover:bg-sunken transition-colors duration-micro flex items-center gap-12 p-12 md:gap-16',
+          focusRing,
+        )}
+      >
+        {assignee ? (
+          <Avatar name={assignee.full_name} seed={assignee.id} size="md" />
+        ) : (
+          <span
+            aria-label="Unassigned"
+            title="Unassigned"
+            className="border-border text-muted text-caption rounded-pill flex size-[32px] shrink-0 items-center justify-center border border-dashed"
+          >
+            ?
+          </span>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="text-body text-ink truncate font-medium">{ticket.subject}</p>
+          <p className="text-body-sm text-muted mt-4 flex flex-wrap items-center gap-12">
+            <span className="text-data font-mono">{ticket.ref}</span>
+            <span className="inline-flex items-center gap-4">
+              <MessageSquare aria-hidden size={16} strokeWidth={1.5} />
+              {ticket.channel}
             </span>
-          )}
+            <time dateTime={ticket.created_at}>{relativeTime(ticket.created_at)}</time>
+          </p>
+        </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="text-body text-ink truncate font-medium">{ticket.subject}</p>
-            <p className="text-body-sm text-muted mt-4 flex flex-wrap items-center gap-12">
-              <span className="text-data font-mono">{ticket.ref}</span>
-              <span className="inline-flex items-center gap-4">
-                <MessageSquare aria-hidden size={16} strokeWidth={1.5} />
-                {ticket.channel}
-              </span>
-              <time dateTime={ticket.created_at}>{relativeTime(ticket.created_at)}</time>
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-8">
-            {priority && <PriorityPill name={priority.name} colorHex={priority.color_hex} />}
-            <StatusPill status={ticket.status} />
-          </div>
-        </Link>
-      </Card>
+        <div className="flex shrink-0 items-center gap-8">
+          {priority && <PriorityPill name={priority.name} colorHex={priority.color_hex} />}
+          <StatusPill status={ticket.status} />
+        </div>
+      </Link>
     </li>
   )
 }

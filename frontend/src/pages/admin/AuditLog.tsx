@@ -69,8 +69,8 @@ export function AuditLog() {
     id ? (users.data?.find((u) => u.id === id)?.full_name ?? 'Removed user') : 'System'
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Audit Log</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Audit Log</h1>
       <p className="text-body text-muted mt-8">
         Every ticket and configuration change, with who made it. Append-only — nothing here can be
         edited or removed.
@@ -105,8 +105,8 @@ export function AuditLog() {
             onChange={(e) => filter(setAction)(e.target.value)}
             placeholder="created, updated…"
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] border px-12',
-              'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] border px-12',
+              'placeholder:text-muted focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />
@@ -119,7 +119,7 @@ export function AuditLog() {
             max={end || undefined}
             onChange={(e) => filter(setStart)(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] border px-12',
               focusRing,
             )}
           />
@@ -132,7 +132,7 @@ export function AuditLog() {
             min={start || undefined}
             onChange={(e) => filter(setEnd)(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] border px-12',
               focusRing,
             )}
           />
@@ -156,39 +156,46 @@ export function AuditLog() {
           />
         )}
 
-        <ul className="flex flex-col gap-8">
-          {(entries.data ?? []).map((entry) => (
-            <li key={entry.id}>
-              <Card className="flex flex-wrap items-start gap-16 p-16">
-                <Avatar name={actorName(entry.actor_id)} size="sm" />
-                <div className="min-w-[240px] flex-1">
-                  <p className="text-body text-ink">
-                    <span className="font-medium">{actorName(entry.actor_id)}</span> {entry.action}{' '}
-                    {humanise(entry.entity_type).toLowerCase()}
-                  </p>
-                  <p className="text-body-sm text-muted mt-4 break-words">
-                    {describeChange(entry)}
-                  </p>
-                </div>
-                {entry.entity_type === 'ticket' && (
-                  <Link
-                    to={`/agent/tickets/${entry.entity_id}`}
-                    className={cn('text-body-sm text-brand-start font-medium', focusRing)}
-                  >
-                    View ticket
-                  </Link>
-                )}
-                <time
-                  dateTime={entry.created_at}
-                  title={new Date(entry.created_at).toLocaleString()}
-                  className="text-body-sm text-muted min-w-[120px] text-right"
+        {/* A log is a table (Doc 07 §9): one surface, divided rows. A shadowed
+            card per audit entry makes fifty equal events look like fifty cards. */}
+        {(entries.data ?? []).length > 0 && (
+          <Card className="overflow-hidden p-0">
+            <ul>
+              {(entries.data ?? []).map((entry) => (
+                <li
+                  key={entry.id}
+                  className="border-divider flex flex-wrap items-start gap-16 p-16 not-last:border-b"
                 >
-                  {relativeTime(entry.created_at)}
-                </time>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                  <Avatar name={actorName(entry.actor_id)} size="sm" />
+                  <div className="min-w-[240px] flex-1">
+                    <p className="text-body text-ink">
+                      <span className="font-medium">{actorName(entry.actor_id)}</span>{' '}
+                      {entry.action} {humanise(entry.entity_type).toLowerCase()}
+                    </p>
+                    <p className="text-body-sm text-muted mt-4 break-words">
+                      {describeChange(entry)}
+                    </p>
+                  </div>
+                  {entry.entity_type === 'ticket' && (
+                    <Link
+                      to={`/agent/tickets/${entry.entity_id}`}
+                      className={cn('text-body-sm text-primary font-medium', focusRing)}
+                    >
+                      View ticket
+                    </Link>
+                  )}
+                  <time
+                    dateTime={entry.created_at}
+                    title={new Date(entry.created_at).toLocaleString()}
+                    className="text-body-sm text-muted min-w-[120px] text-right"
+                  >
+                    {relativeTime(entry.created_at)}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
 
       {/* No total count comes back, so paging is "is this page full?" rather

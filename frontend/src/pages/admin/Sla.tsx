@@ -42,15 +42,15 @@ export function SlaRules() {
   })
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">SLA Rules</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">SLA Rules</h1>
       <p className="text-body text-muted mt-8">
         Response and resolution targets per category and priority. The most specific match wins; a
         rule with no category is the default for that priority.
       </p>
 
       <Card className="mt-24">
-        <h2 className="text-h3 font-display font-semibold">New rule</h2>
+        <h2 className="text-h3 font-semibold">New rule</h2>
         <SlaRuleForm />
       </Card>
 
@@ -142,7 +142,7 @@ function Timing({ rule }: { rule: SlaRule }) {
             const value = Number(e.target.value)
             if (value && value !== rule[key]) patch.mutate({ [key]: value })
           }}
-          className="rounded-control border-border bg-canvas text-data h-[36px] w-[88px] border px-8 font-mono"
+          className="rounded-control bg-sunken text-data focus:bg-surface focus:border-primary h-[36px] w-[88px] border border-transparent px-8 font-mono"
         />
         <span className="text-body-sm text-muted">{formatMinutes(rule[key])}</span>
       </span>

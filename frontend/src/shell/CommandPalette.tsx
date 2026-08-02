@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router'
 import { useDialog } from '../components/useDialog'
 import { api } from '../lib/api'
 import { useDebounced } from '../lib/hooks'
-import { cn, formatTicketId } from '../lib/ui'
+import { cn, formatTicketId, splitOnMatch } from '../lib/ui'
 import { navFor } from './nav'
 import type { Role } from '../lib/session'
 
@@ -86,9 +86,11 @@ export function CommandPalette({ open, onClose, role, ticketBasePath }: CommandP
       ref={ref}
       aria-label="Command palette"
       className={cn(
-        'rounded-card border-border bg-elevated text-ink shadow-elevated',
-        'mx-auto mt-[96px] mb-auto w-[calc(100%-32px)] max-w-[640px] border p-0 backdrop:bg-black/40',
-        'open:animate-[rise-in_var(--duration-modal)_ease-out]',
+        'rounded-card bg-elevated text-ink shadow-overlay dark:border-border dark:border',
+        // Doc 07 §18: 600px, centred, over the same ink scrim the modals use.
+        'mx-auto mt-[96px] mb-auto w-[calc(100%-32px)] max-w-[600px] p-0',
+        'backdrop:bg-ink/60 backdrop:backdrop-blur-[4px]',
+        'open:animate-[scale-in_var(--duration-modal)_var(--ease-macro)]',
       )}
       onKeyDown={(e) => {
         if (e.key === 'ArrowDown') {
@@ -103,7 +105,7 @@ export function CommandPalette({ open, onClose, role, ticketBasePath }: CommandP
         }
       }}
     >
-      <div className="border-border flex items-center gap-12 border-b px-16">
+      <div className="border-divider flex items-center gap-12 border-b px-16">
         <Search aria-hidden size={20} strokeWidth={1.5} className="text-muted shrink-0" />
         <input
           autoFocus
@@ -125,10 +127,24 @@ export function CommandPalette({ open, onClose, role, ticketBasePath }: CommandP
               aria-current={i === cursor}
               className={cn(
                 'rounded-control text-body flex w-full cursor-pointer items-center justify-between gap-12 px-12 py-12 text-left',
-                i === cursor && 'bg-surface',
+                // The cursor row used to lift to `surface`, which is now the same
+                // white as the palette itself — the selection tint is the signal.
+                i === cursor && 'bg-primary-tint text-primary font-medium',
               )}
             >
-              <span className="truncate">{result.label}</span>
+              <span className="truncate">
+                {/* §18: the matched run is tinted, so it's obvious why a result
+                    is in the list — especially on a fuzzy ticket-subject hit. */}
+                {splitOnMatch(result.label, query).map((part, p) =>
+                  part.match ? (
+                    <span key={p} className="text-primary font-medium">
+                      {part.text}
+                    </span>
+                  ) : (
+                    <span key={p}>{part.text}</span>
+                  ),
+                )}
+              </span>
               <span className="text-caption text-muted font-mono shrink-0">{result.hint}</span>
             </button>
           </li>
@@ -140,7 +156,7 @@ export function CommandPalette({ open, onClose, role, ticketBasePath }: CommandP
         )}
       </ul>
 
-      <p className="border-border text-caption text-muted flex items-center gap-4 border-t px-16 py-8">
+      <p className="border-divider text-caption text-muted flex items-center gap-4 border-t px-16 py-8">
         <CornerDownLeft aria-hidden size={16} strokeWidth={1.5} />
         to open · Esc to dismiss
       </p>

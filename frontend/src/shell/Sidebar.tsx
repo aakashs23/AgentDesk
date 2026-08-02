@@ -27,7 +27,7 @@ export function Sidebar({
     <nav
       aria-label="Main"
       className={cn(
-        'border-border bg-canvas flex h-full flex-col border-r py-24',
+        'border-divider bg-canvas flex h-full flex-col border-r py-24',
         // Doc 04: the collapse is a width animation only — a fade would briefly
         // hide navigation the user may be mid-click on.
         'transition-[width] duration-page ease-in-out',
@@ -56,10 +56,11 @@ export function Sidebar({
                       'transition-colors duration-micro',
                       collapsed && 'justify-center',
                       isActive
-                        ? // Never colour alone: a solid left-edge accent bar plus a
-                          // lifted background, per Doc 04's Sidebar rules.
-                          'bg-surface text-ink font-medium before:bg-brand-start before:absolute before:top-1/2 before:left-0 before:h-16 before:w-0.5 before:-translate-y-1/2 before:rounded-pill'
-                        : 'text-muted hover:text-ink',
+                        ? // Doc 07 §6 offers a left border or a tint fill; the fill
+                          // is the one that isn't a side stripe. Weight carries the
+                          // state alongside colour, so it never rests on hue alone.
+                          'bg-primary-tint text-primary font-medium'
+                        : 'text-muted hover:text-ink hover:bg-sunken',
                       focusRing,
                     )
                   }

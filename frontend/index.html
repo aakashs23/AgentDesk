@@ -7,22 +7,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Inter:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <title>AgentDesk</title>
   </head>
   <body>
     <script>
-      // Resolve the theme before first paint, so a dark surface never flashes
-      // white on reload. Mirrors resolveTheme() in src/lib/theme.ts: an explicit
-      // preference wins, otherwise the surface decides. Login is always light.
+      // Resolve the theme before first paint, so dark never flashes white on
+      // reload. Mirrors resolveTheme() in src/lib/ui.ts: Doc 07 is light-first
+      // everywhere, so only an explicit stored preference turns dark on.
       try {
         var stored = JSON.parse(localStorage.getItem('agentdesk.session') || 'null')
         var preference = stored && stored.user && stored.user.theme_preference
-        var productSurface = /^\/(agent|admin)/.test(location.pathname)
-        var login = /^\/login/.test(location.pathname)
-        if (!login && (preference === 'dark' || (preference !== 'light' && productSurface))) {
+        if (preference === 'dark') {
           document.documentElement.classList.add('dark')
         }
       } catch {

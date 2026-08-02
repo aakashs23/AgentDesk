@@ -90,8 +90,8 @@ export function MentionTextarea({
         }}
         onBlur={() => setToken(null)}
         className={cn(
-          'rounded-control border-border bg-canvas text-ink w-full border p-12',
-          'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+          'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+          'placeholder:text-muted focus:border-primary transition-colors duration-micro',
           focusRing,
           className,
         )}
@@ -102,7 +102,7 @@ export function MentionTextarea({
           role="listbox"
           aria-label="Mention a teammate"
           className={cn(
-            'rounded-card border-border bg-elevated shadow-elevated absolute z-50 mt-4 w-full max-w-[320px] border p-4',
+            'rounded-card border-border bg-elevated shadow-overlay absolute z-50 mt-4 w-full max-w-[320px] border p-4',
             'animate-[fade-in_var(--duration-dropdown)_ease-out]',
           )}
         >

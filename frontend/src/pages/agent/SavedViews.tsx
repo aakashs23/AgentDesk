@@ -68,13 +68,13 @@ export function SavedViews() {
 
   return (
     <div className="mx-auto max-w-[960px]">
-      <h1 className="font-display text-h1 font-semibold">Saved Views</h1>
+      <h1 className="text-h1 font-semibold">Saved Views</h1>
       <p className="text-body text-muted mt-8">
         Name a filter set once and reopen it from here — views are private to you.
       </p>
 
       <Card className="mt-24">
-        <h2 className="text-h3 font-display font-semibold">New view</h2>
+        <h2 className="text-h3 font-semibold">New view</h2>
         <div className="mt-16 grid gap-16 md:grid-cols-3">
           <Input
             label="Name"
@@ -88,7 +88,7 @@ export function SavedViews() {
               value={filters.status ?? ''}
               onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
               className={cn(
-                'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
+                'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
                 focusRing,
               )}
             >
@@ -106,7 +106,7 @@ export function SavedViews() {
               value={filters.priority_id ?? ''}
               onChange={(e) => setFilters((f) => ({ ...f, priority_id: e.target.value }))}
               className={cn(
-                'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
+                'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
                 focusRing,
               )}
             >
