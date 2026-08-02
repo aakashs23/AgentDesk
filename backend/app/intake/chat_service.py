@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai import gemini
 from app.config import get_settings
+from app.knowledge_base import service as kb
 from app.models import ConversationHistory, KnowledgeBaseArticle, Ticket, User
 from app.search import service as search
 from app.tickets import schemas
@@ -92,9 +93,12 @@ async def start(session: AsyncSession, user: User) -> tuple[str, list[Conversati
     return session_id, await transcript(session, session_id)
 
 
-async def _suggest(session: AsyncSession, role: str, message: str) -> list[KnowledgeBaseArticle]:
+async def _suggest(
+    session: AsyncSession, user: User, role: str, message: str
+) -> list[KnowledgeBaseArticle]:
     qvec = await search.embed_query(message)
-    hits = await search.search_kb(session, role, message, qvec, limit=3)
+    scope = kb.scope_articles_to_caller(user, role)
+    hits = await search.search_kb(session, scope, message, qvec, limit=3)
     return [hit["article"] for hit in hits]
 
 
@@ -151,7 +155,7 @@ async def post_message(
         await session.commit()
         return new, []
 
-    articles = await _suggest(session, role, message)
+    articles = await _suggest(session, user, role, message)
     new.append(_say(session, session_id, "bot", await _bot_answer(message, articles, history)))
     await session.commit()
     return new, articles

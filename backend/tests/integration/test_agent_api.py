@@ -8,6 +8,7 @@ this file is the "real tests" that file asks for when a gap gets filled.
 
 import pytest
 
+from app.models import EMBEDDING_DIM
 from tests.helpers.auth import API, auth
 from tests.helpers.factories import make_ticket, rand
 
@@ -184,3 +185,123 @@ def test_writing_an_article_lands_in_the_audit_log(client, tokens, db):
             .all()
         )
     assert "created" in actions
+
+
+# --- Phase 14 checkpoint: the loop closes (App Flow §19 steps 5–6) ---
+
+
+def test_publishing_embeds_the_article_so_it_can_be_suggested(client, tokens, db, monkeypatch):
+    """Without a vector the AI pipeline's retrieval node skips the article
+    entirely (`embedding IS NOT NULL`), so publishing must generate one."""
+
+    from app.knowledge_base import service as kb
+
+    async def fake_embed(text: str) -> list[float]:
+        assert "Reindex me" in text, "the embedding must cover the title, not just the body"
+        return [0.1] * EMBEDDING_DIM
+
+    monkeypatch.setattr(kb.gemini, "embed", fake_embed)
+
+    article = _draft(client, tokens["agent"], title=f"Reindex me {rand()}").json()
+    assert _embedding_of(db, article["id"]) is None, "a draft is not suggestible yet"
+
+    published = client.patch(
+        f"{API}/knowledge-base/articles/{article['id']}",
+        json={"status": "published"},
+        headers=auth(tokens["admin"]),
+    )
+    assert published.status_code == 200, published.text
+    assert _embedding_of(db, article["id"]) is not None
+
+
+def test_publishing_survives_an_embedding_failure(client, tokens, monkeypatch):
+    """The provider being down must not block review — §19 step 5 is a human
+    decision, and the article is still findable by full-text search."""
+    from app.knowledge_base import service as kb
+
+    async def boom(_text: str) -> list[float]:
+        raise RuntimeError("provider down")
+
+    monkeypatch.setattr(kb.gemini, "embed", boom)
+    article = _draft(client, tokens["agent"]).json()
+    published = client.patch(
+        f"{API}/knowledge-base/articles/{article['id']}",
+        json={"status": "published"},
+        headers=auth(tokens["admin"]),
+    )
+    assert published.status_code == 200, published.text
+
+
+def test_editing_a_published_article_refreshes_its_embedding(client, tokens, db, monkeypatch):
+    from app.knowledge_base import service as kb
+
+    async def fake_embed(text: str) -> list[float]:
+        return [0.2 if "Rewritten" in text else 0.1] * EMBEDDING_DIM
+
+    monkeypatch.setattr(kb.gemini, "embed", fake_embed)
+    article = _draft(client, tokens["admin"], status="published").json()
+    before = _embedding_of(db, article["id"])
+
+    client.patch(
+        f"{API}/knowledge-base/articles/{article['id']}",
+        json={"body": "Rewritten guidance"},
+        headers=auth(tokens["admin"]),
+    )
+    assert _embedding_of(db, article["id"]) != before, "a stale vector matches the wrong tickets"
+
+
+def test_a_draft_never_reaches_a_requester_through_search(client, tokens):
+    """Checkpoint: unpublished work is invisible in browse, global search and
+    the chat widget's suggestions alike — all three share one scope."""
+    marker = rand("secret")
+    _draft(client, tokens["agent"], title=f"Draft {marker}", body=f"Secret {marker}")
+
+    browse = client.get(
+        f"{API}/knowledge-base/articles", params={"q": marker}, headers=auth(tokens["requester"])
+    )
+    assert marker not in str(browse.json())
+
+    found = client.get(
+        f"{API}/search/tickets", params={"q": marker}, headers=auth(tokens["requester"])
+    )
+    assert found.status_code == 200, found.text
+    assert marker not in str(found.json()["kb_articles"])
+
+
+def test_search_does_not_leak_another_agents_draft(client, tokens):
+    """`/search` reuses `scope_articles_to_caller`, so a lead sees published
+    articles plus their own drafts — never a colleague's."""
+    marker = rand("private")
+    _draft(client, tokens["agent"], title=f"Draft {marker}", body=f"Notes {marker}")
+
+    for token in (tokens["team_lead"], tokens["agent"]):
+        hits = client.get(f"{API}/search/tickets", params={"q": marker}, headers=auth(token)).json()
+        titles = {a["title"] for a in hits["kb_articles"]}
+        assert (f"Draft {marker}" in titles) == (token is tokens["agent"])
+
+
+def test_the_admin_review_queue_filters_to_drafts(client, tokens):
+    """§19 step 4: the Admin needs to find what is waiting for review."""
+    marker = rand("review")
+    _draft(client, tokens["agent"], title=f"Draft {marker}")
+    _draft(client, tokens["admin"], title=f"Live {marker}", status="published")
+
+    drafts = client.get(
+        f"{API}/knowledge-base/articles",
+        params={"q": marker, "status": "draft"},
+        headers=auth(tokens["admin"]),
+    )
+    assert drafts.status_code == 200, drafts.text
+    titles = {a["title"] for a in drafts.json()}
+    assert f"Draft {marker}" in titles
+    assert f"Live {marker}" not in titles, "the review queue is drafts only"
+
+
+def _embedding_of(db, article_id: str):
+    import sqlalchemy as sa
+
+    with db.connect() as conn:
+        return conn.execute(
+            sa.text("SELECT embedding FROM knowledge_base_articles WHERE id = :id"),
+            {"id": article_id},
+        ).scalar()

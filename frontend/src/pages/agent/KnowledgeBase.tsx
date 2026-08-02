@@ -9,6 +9,7 @@ import { EmptyState, ErrorState } from '../../components/EmptyState'
 import { Input } from '../../components/Input'
 import { ConfirmModal } from '../../components/Modal'
 import { Skeleton, SkeletonRows } from '../../components/Skeleton'
+import { Tabs } from '../../components/Tabs'
 import { ApiError, api } from '../../lib/api'
 import { useUser } from '../../lib/auth'
 import { useDebounced } from '../../lib/hooks'
@@ -16,6 +17,13 @@ import { useCategories, useSurfaceBase, useTicket } from '../../lib/queries'
 import { toast } from '../../lib/toast'
 import type { KbArticle, KbArticleSummary } from '../../lib/types'
 import { cn, focusRing, relativeTime } from '../../lib/ui'
+
+/** §19 step 4: "Drafts" is the review queue — what is waiting to be published. */
+const KB_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'draft', label: 'Drafts' },
+  { id: 'published', label: 'Published' },
+]
 
 /**
  * Staff-facing KB browse. Unlike the portal's accordion this is a working
@@ -28,15 +36,18 @@ import { cn, focusRing, relativeTime } from '../../lib/ui'
  */
 export function AgentKnowledgeBase() {
   const [query, setQuery] = useState('')
+  const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const base = useSurfaceBase()
   const term = useDebounced(query.trim(), 300)
+  const tab = params.get('status') ?? 'all'
 
   const articles = useQuery({
-    queryKey: ['kb', term],
+    queryKey: ['kb', term, tab],
     queryFn: () =>
       api<KbArticleSummary[]>(
-        `/knowledge-base/articles?limit=50${term ? `&q=${encodeURIComponent(term)}` : ''}`,
+        `/knowledge-base/articles?limit=50${term ? `&q=${encodeURIComponent(term)}` : ''}` +
+          (tab === 'all' ? '' : `&status=${tab}`),
       ),
   })
 
@@ -51,6 +62,14 @@ export function AgentKnowledgeBase() {
         >
           New article
         </Button>
+      </div>
+
+      <div className="mt-24">
+        <Tabs
+          tabs={KB_TABS}
+          active={tab}
+          onChange={(id) => setParams(id === 'all' ? {} : { status: id })}
+        />
       </div>
 
       <div className="relative mt-24">
@@ -282,6 +301,22 @@ export function AgentKbArticle() {
     queryFn: () => api<KbArticle>(`/knowledge-base/articles/${articleId}`),
   })
 
+  /** §19 step 5: approving a draft is the whole review action, so it lives on
+   *  the screen the Admin lands on from the Drafts queue — not behind Edit. */
+  const publish = useMutation({
+    mutationFn: () =>
+      api<KbArticle>(`/knowledge-base/articles/${articleId}`, {
+        method: 'PATCH',
+        json: { status: 'published' },
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['kb'] })
+      await queryClient.invalidateQueries({ queryKey: ['kb-article', articleId] })
+      toast('Article published — it can be suggested on new tickets now', 'success')
+    },
+    onError: (e) => toast(e instanceof ApiError ? e.message : 'Could not publish', 'error'),
+  })
+
   const remove = useMutation({
     mutationFn: () => api<void>(`/knowledge-base/articles/${articleId}`, { method: 'DELETE' }),
     onSuccess: async () => {
@@ -314,6 +349,11 @@ export function AgentKbArticle() {
           </p>
         </div>
         <div className="flex gap-8">
+          {user?.role === 'admin' && article.data.status === 'draft' && (
+            <Button variant="primary" disabled={publish.isPending} onClick={() => publish.mutate()}>
+              Publish
+            </Button>
+          )}
           <Button onClick={() => navigate(`${base}/kb/${article.data.id}/edit`)}>Edit</Button>
           {/* Doc 03 §1 gives Admin full CRUD; the API refuses a delete from
               anyone else, author or not. */}

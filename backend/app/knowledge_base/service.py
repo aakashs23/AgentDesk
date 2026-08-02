@@ -9,8 +9,13 @@
 
 Writes follow App Flow §19's creation loop: staff draft an article from a
 resolved ticket, only an Admin publishes it. Full admin CRUD is Phase 12.
+
+Publishing embeds the article (§19 steps 5–6): the AI pipeline's retrieval node
+and the vector half of search both match on `knowledge_base_articles.embedding`,
+so an article without one is invisible to suggestions no matter what it says.
 """
 
+import logging
 import uuid
 from datetime import UTC, datetime
 
@@ -18,8 +23,12 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai import gemini, pii
 from app.audit import service as audit
 from app.models import KnowledgeBaseArticle, User
+from app.search import service as search
+
+logger = logging.getLogger("agentdesk")
 
 
 def scope_articles_to_caller(user: User, role: str):
@@ -45,22 +54,31 @@ async def list_articles(
     category_id: uuid.UUID | None,
     limit: int,
     offset: int,
+    status: str | None = None,
 ) -> list[KnowledgeBaseArticle]:
-    query = sa.select(KnowledgeBaseArticle).where(scope_articles_to_caller(user, role))
-    if q:
-        # Plain ILIKE, not the hybrid vector search in `app.search`: browsing the
-        # KB is a title/body substring match, and it must work with no
-        # GEMINI_API_KEY configured. `/search/tickets` covers semantic recall.
-        pattern = f"%{q}%"
-        query = query.where(
-            sa.or_(
-                KnowledgeBaseArticle.title.ilike(pattern),
-                KnowledgeBaseArticle.body.ilike(pattern),
-            )
-        )
+    criteria = [scope_articles_to_caller(user, role)]
     if category_id is not None:
-        query = query.where(KnowledgeBaseArticle.category_id == category_id)
-    query = query.order_by(KnowledgeBaseArticle.updated_at.desc()).limit(limit).offset(offset)
+        criteria.append(KnowledgeBaseArticle.category_id == category_id)
+    if status is not None:
+        criteria.append(KnowledgeBaseArticle.status == status)
+
+    if q:
+        # Same matcher as global search and the chat widget, so the New Ticket
+        # form's suggestions rank a paraphrase the way §19 step 6 expects rather
+        # than needing a literal substring. It degrades to FTS + trigram with no
+        # GEMINI_API_KEY, so browsing never depends on the AI provider.
+        hits = await search.search_kb(
+            session, sa.and_(*criteria), q, await search.embed_query(q), limit, offset
+        )
+        return [hit["article"] for hit in hits]
+
+    query = (
+        sa.select(KnowledgeBaseArticle)
+        .where(*criteria)
+        .order_by(KnowledgeBaseArticle.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     return list((await session.execute(query)).scalars())
 
 
@@ -78,6 +96,25 @@ async def get_article_scoped(
 
 
 # --- Writes (App Flow §19) ---
+
+
+async def embed_article(article: KnowledgeBaseArticle) -> None:
+    """Give a published article the vector the suggestion path matches on.
+
+    Title + body, redacted, one vector on the row — deliberately produced the
+    same way as a ticket's (subject + description → `pii.redact` →
+    `gemini.embed`), because the pipeline compares the two directly with
+    `cosine_distance` and only vectors from the same text pipeline are
+    comparable.
+
+    Never fatal: publishing must still succeed with no GEMINI_API_KEY or a
+    provider outage. The article is then findable by FTS/trigram and gets its
+    vector on the next edit (or via `scripts/reindex_kb.py`).
+    """
+    try:
+        article.embedding = await gemini.embed(pii.redact(f"{article.title}\n{article.body}"))
+    except Exception:
+        logger.exception("KB embedding failed for article %s — published without one", article.id)
 
 
 def _check_publish_rights(role: str, status: str | None) -> None:
@@ -106,6 +143,8 @@ async def create_article(
         status=status,
         published_at=datetime.now(UTC) if status == "published" else None,
     )
+    if status == "published":
+        await embed_article(article)
     session.add(article)
     await session.flush()
     audit.log(
@@ -153,6 +192,12 @@ async def update_article(
         setattr(article, key, value)
     if changes.get("status") == "published" and article.published_at is None:
         article.published_at = datetime.now(UTC)
+    # Re-embed whenever a published article's text changes, or the first time it
+    # is published: a stale vector suggests the article on the wrong tickets.
+    if article.status == "published" and (
+        article.embedding is None or {"title", "body"} & changes.keys()
+    ):
+        await embed_article(article)
     article.updated_at = datetime.now(UTC)
     audit.log(
         session,

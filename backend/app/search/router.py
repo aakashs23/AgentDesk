@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict
 
 from app.auth.deps import CurrentUser, SessionDep, role_name
+from app.knowledge_base.service import scope_articles_to_caller
 from app.models import SavedView
 from app.search import service
 from app.validators import BoundedJson, SafeText
@@ -78,7 +79,9 @@ async def search(
     ticket_hits = await service.search_tickets(
         session, caller, role, q, filters, qvec, limit, offset
     )
-    kb_hits = await service.search_kb(session, role, q, qvec, limit)
+    kb_hits = await service.search_kb(
+        session, scope_articles_to_caller(caller, role), q, qvec, limit
+    )
     return SearchResults(
         query=q,
         tickets=[
