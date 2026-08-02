@@ -299,3 +299,38 @@ def test_langgraph_wiring():
     graph = pipeline.build_graph()
     nodes = set(graph.get_graph().nodes)
     assert {"redact", "embed", "retrieve", "classify", "route", "draft"} <= nodes
+
+
+def test_a_published_article_is_retrieved_for_a_similar_ticket(monkeypatch, client, tokens):
+    """Phase 14 checkpoint, the whole loop: publish a draft, raise a similar
+    ticket, and the article grounds the AI draft. Publishing is what gives the
+    article the embedding this retrieval matches on."""
+    marker = uuid.uuid4().hex[:8]
+    vpn_vector = [0.0, 1.0] + [0.0] * (EMBEDDING_DIM - 2)
+
+    async def keyed_embed(text: str) -> list[float]:
+        return vpn_vector if "vpn" in text.lower() else FAKE_VECTOR
+
+    seen: list[str] = []
+
+    async def spy_generate_text(prompt: str) -> str:
+        seen.append(prompt)
+        return "Try reconnecting."
+
+    monkeypatch.setattr(gemini, "embed", keyed_embed)
+    monkeypatch.setattr(gemini, "generate_text", spy_generate_text)
+
+    published = client.post(
+        f"{API}/knowledge-base/articles",
+        json={
+            "title": f"Fixing VPN disconnects {marker}",
+            "body": "Reset the VPN client, then reconnect on the corporate network.",
+            "status": "published",
+        },
+        headers=_auth(tokens["admin"]),
+    )
+    assert published.status_code == 201, published.text
+
+    _create(client, tokens, "VPN keeps dropping", "My vpn disconnects every few minutes")
+    assert seen, "the draft node never ran"
+    assert marker in seen[-1], "the published article never reached the draft prompt"

@@ -43,11 +43,17 @@ async def list_articles(
     session: SessionDep,
     q: Annotated[SafeText | None, Query()] = None,
     category_id: uuid.UUID | None = None,
+    status: Literal["draft", "published"] | None = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ArticleSummary]:
+    """`status=draft` is the Admin's review queue (§19 step 4) — it narrows what
+    the caller may already see, so a requester asking for drafts still gets
+    nothing rather than an error."""
     role = await role_name(session, caller.role_id)
-    articles = await service.list_articles(session, caller, role, q, category_id, limit, offset)
+    articles = await service.list_articles(
+        session, caller, role, q, category_id, limit, offset, status
+    )
     return [ArticleSummary.model_validate(a) for a in articles]
 
 

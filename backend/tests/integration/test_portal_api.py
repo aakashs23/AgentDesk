@@ -122,14 +122,17 @@ def test_article_detail_carries_the_body_and_the_list_does_not(client, tokens, d
 
 
 def test_kb_search_matches_on_body_not_just_title(client, tokens, db):
+    """Browse search is the ranked matcher `/search` uses, so a phrase that only
+    appears in the body still finds the article — and it ranks first, rather
+    than being the only row a substring match would have allowed."""
     marker = rand("kbbody")
-    _make_article(db, f"Findable {marker}", "published")
+    article = _make_article(db, f"Findable {marker}", "published")
     response = client.get(
         f"{API}/knowledge-base/articles",
         params={"q": f"Body of Findable {marker}"},
         headers=auth(tokens["requester"]),
     )
-    assert len(response.json()) == 1
+    assert [a["id"] for a in response.json()][:1] == [article]
 
 
 def test_kb_requires_authentication(client):

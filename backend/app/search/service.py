@@ -4,8 +4,9 @@ One SQL pass blends Postgres FTS, pg_trgm fuzzy matching, and pgvector cosine
 similarity over tickets, with metadata filters applied in the WHERE clause
 before ranking. Row visibility reuses `scope_tickets_to_caller` (Doc 05 §6), so
 the same query is correctly scoped per role. Knowledge Base results ride along
-in the same response, scoped by role (requester → published only; staff/admin →
-drafts too), per §18.
+in the same response, scoped by `scope_articles_to_caller` — the same criterion
+the KB module uses, so search can never surface a draft the KB screens hide
+(requester → published only; staff → published plus their own drafts).
 """
 
 import sqlalchemy as sa
@@ -106,8 +107,22 @@ async def search_tickets(
 
 
 async def search_kb(
-    session: AsyncSession, role: str, q: str, qvec: list[float] | None, limit: int
+    session: AsyncSession,
+    scope,
+    q: str,
+    qvec: list[float] | None,
+    limit: int,
+    offset: int = 0,
 ) -> list[dict]:
+    """The one KB matcher: global search, the New Ticket form's suggestions, the
+    chat widget and the KB browse screens all come through here, so an article
+    that is findable on one surface is findable on all of them.
+
+    `scope` is a boolean criterion the caller supplies — normally
+    `knowledge_base.service.scope_articles_to_caller(...)`, optionally ANDed with
+    filters. Passing it in (rather than importing the KB service here) keeps the
+    dependency one-way: knowledge_base → search, never back.
+    """
     kb_tsv = sa.text(
         "to_tsvector('english', knowledge_base_articles.title || ' ' || "
         "knowledge_base_articles.body)"
@@ -129,10 +144,13 @@ async def search_kb(
         match_terms.append(vec_dist < _VEC_CEILING)
     score = (2 * fts_rank) + trgm + ((1 - vec_dist) if qvec else 0)
 
-    query = sa.select(KnowledgeBaseArticle, score.label("score")).where(sa.or_(*match_terms))
-    if role == "requester":  # §18: requesters see published articles only
-        query = query.where(KnowledgeBaseArticle.status == "published")
-    query = query.order_by(sa.desc("score")).limit(limit)
+    query = (
+        sa.select(KnowledgeBaseArticle, score.label("score"))
+        .where(scope, sa.or_(*match_terms))
+        .order_by(sa.desc("score"))
+        .limit(limit)
+        .offset(offset)
+    )
 
     rows = (await session.execute(query)).all()
     return [{"article": art, "score": round(float(sc), 4)} for art, sc in rows]
