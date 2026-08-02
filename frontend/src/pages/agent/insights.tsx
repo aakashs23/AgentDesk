@@ -169,7 +169,7 @@ function ClassificationPanel({
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-16">
         <div>
-          <h3 className="text-h3 font-display font-semibold">Classification</h3>
+          <h3 className="text-h3 font-semibold">Classification</h3>
           <p className="text-body-sm text-muted mt-4">{tier.action}</p>
         </div>
         <AIInsightChip
@@ -212,7 +212,7 @@ function ClassificationPanel({
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
               focusRing,
             )}
           >
@@ -231,7 +231,7 @@ function ClassificationPanel({
             value={priorityId}
             onChange={(e) => setPriorityId(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
               focusRing,
             )}
           >
@@ -300,7 +300,7 @@ function SimilarTickets({ ticket }: { ticket: Ticket }) {
               to={`/agent/tickets/${hit.id}`}
               className={cn(
                 'rounded-control border-border flex items-center justify-between gap-12 border p-12',
-                'hover:bg-surface transition-colors duration-micro',
+                'hover:bg-sunken transition-colors duration-micro',
                 focusRing,
               )}
             >
@@ -397,14 +397,14 @@ export function DraftDrawer({
             onChange={(e) => setBody(e.target.value)}
             aria-label="Draft reply"
             className={cn(
-              'rounded-control border-border bg-canvas text-ink w-full border p-12',
-              'focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+              'focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />
 
           {edited && (
-            <p className="text-body-sm text-brand-start">
+            <p className="text-body-sm text-ai">
               Edited — this will be recorded as an edit, not an approval.
             </p>
           )}

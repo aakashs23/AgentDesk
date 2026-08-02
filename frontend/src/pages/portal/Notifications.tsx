@@ -51,7 +51,7 @@ export function Notifications() {
 
   return (
     <div className="mx-auto max-w-[760px]">
-      <h1 className="font-display text-h1 font-semibold">Notifications</h1>
+      <h1 className="text-h1 font-semibold">Notifications</h1>
 
       <div className="mt-24">
         {notifications.isPending && <SkeletonRows rows={5} />}
@@ -76,7 +76,7 @@ export function Notifications() {
                 onClick={() => open(notification)}
                 className={cn(
                   'rounded-card border-border flex w-full cursor-pointer flex-col gap-4 border p-16 text-left',
-                  'hover:bg-surface transition-colors duration-micro',
+                  'hover:bg-sunken transition-colors duration-micro',
                   focusRing,
                 )}
               >
@@ -86,7 +86,7 @@ export function Notifications() {
                   {!notification.is_read && (
                     <span
                       aria-label="Unread"
-                      className="bg-brand-start size-[8px] shrink-0 rounded-pill"
+                      className="bg-primary size-[8px] shrink-0 rounded-pill"
                     />
                   )}
                   <span

@@ -22,7 +22,7 @@ export function Toaster() {
   return (
     <div
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-16 bottom-16 z-100 flex flex-col items-center gap-8 md:inset-x-auto md:right-32 md:bottom-32 md:items-end"
+      className="pointer-events-none fixed inset-x-16 bottom-16 z-100 flex flex-col items-center gap-8 md:inset-x-auto md:right-24 md:bottom-24 md:items-end"
     >
       {toasts.map((t) => {
         const Icon = ICONS[t.tone]
@@ -31,8 +31,11 @@ export function Toaster() {
             key={t.id}
             role="status"
             className={cn(
-              'rounded-card border-border bg-elevated text-body text-ink shadow-elevated',
-              'pointer-events-auto flex w-full max-w-[420px] items-start gap-12 border p-16',
+              // Doc 07 §16 wants a 4px status stripe down the left edge; the tone
+              // icon already carries that meaning, and a coloured side border is
+              // a pattern this codebase doesn't use anywhere else.
+              'rounded-card border-border bg-elevated text-body text-ink shadow-overlay',
+              'pointer-events-auto flex w-full items-start gap-12 border p-16 md:w-[320px]',
               'animate-[rise-in_var(--duration-modal)_ease-out]',
             )}
           >

@@ -11,6 +11,7 @@ import { ConfirmModal, Modal } from '../../components/Modal'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Select } from '../../components/Select'
 import { Tabs } from '../../components/Tabs'
+import { Toggle } from '../../components/Toggle'
 import { ApiError, api } from '../../lib/api'
 import {
   ACTION_PARAM,
@@ -34,8 +35,8 @@ export function AutomationRules() {
   const [tab, setTab] = useState('rules')
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Automation Rules</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Automation Rules</h1>
       <p className="text-body text-muted mt-8">
         Trigger → conditions → actions, evaluated at write time. A lower priority number wins a
         conflict.
@@ -132,40 +133,39 @@ function RuleList() {
           />
         )}
 
-        <ul className="flex flex-col gap-8">
-          {(rules.data ?? []).map((rule) => (
-            <li key={rule.id}>
-              <Card className="flex flex-wrap items-center gap-16 p-16">
-                <div className="min-w-[240px] flex-1">
-                  <p className="text-body text-ink font-medium">{rule.name}</p>
-                  <p className="text-body-sm text-muted mt-4">
-                    On {humanise(rule.trigger_type).toLowerCase()} · {rule.conditions.length}{' '}
-                    condition{rule.conditions.length === 1 ? '' : 's'} · {rule.actions.length}{' '}
-                    action
-                    {rule.actions.length === 1 ? '' : 's'} · priority {rule.priority}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    'rounded-pill text-caption px-12 py-4 font-medium tracking-wide uppercase',
-                    rule.is_active ? 'bg-success text-white' : 'border-border text-muted border',
-                  )}
+        {(rules.data ?? []).length > 0 && (
+          <Card className="overflow-hidden p-0">
+            <ul>
+              {(rules.data ?? []).map((rule) => (
+                <li
+                  key={rule.id}
+                  className="border-divider flex flex-wrap items-center gap-16 p-16 not-last:border-b"
                 >
-                  {rule.is_active ? 'Active' : 'Paused'}
-                </span>
-                <Button size="sm" onClick={() => toggle.mutate(rule)}>
-                  {rule.is_active ? 'Pause' : 'Activate'}
-                </Button>
-                <Button size="sm" onClick={() => setEditing(rule)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setDeleting(rule)}>
-                  Delete
-                </Button>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                  <div className="min-w-[240px] flex-1">
+                    <p className="text-body text-ink font-medium">{rule.name}</p>
+                    <p className="text-body-sm text-muted mt-4">
+                      On {humanise(rule.trigger_type).toLowerCase()} · {rule.conditions.length}{' '}
+                      condition{rule.conditions.length === 1 ? '' : 's'} · {rule.actions.length}{' '}
+                      action
+                      {rule.actions.length === 1 ? '' : 's'} · priority {rule.priority}
+                    </p>
+                  </div>
+                  <Toggle
+                    checked={rule.is_active}
+                    onChange={() => toggle.mutate(rule)}
+                    label={rule.is_active ? 'Active' : 'Paused'}
+                  />
+                  <Button size="sm" onClick={() => setEditing(rule)}>
+                    Edit
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDeleting(rule)}>
+                    Delete
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
 
       {(building || editing) && (
@@ -390,7 +390,7 @@ function ValueInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={field === 'status' ? 'in_progress' : 'value'}
         className={cn(
-          'rounded-control border-border bg-canvas text-ink h-[44px] min-w-[160px] flex-1 border px-12',
+          'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] min-w-[160px] flex-1 border px-12',
           focusRing,
         )}
       />
@@ -512,7 +512,7 @@ function ActionEditor({
           onChange={(e) => set(index, { tag: e.target.value })}
           placeholder="tag name"
           className={cn(
-            'rounded-control border-border bg-canvas text-ink h-[44px] min-w-[160px] flex-1 border px-12',
+            'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] min-w-[160px] flex-1 border px-12',
             focusRing,
           )}
         />
@@ -650,7 +650,7 @@ function ExecutionLog() {
                 {log.ticket_id && (
                   <Link
                     to={`/agent/tickets/${log.ticket_id}`}
-                    className={cn('text-body-sm text-brand-start font-medium', focusRing)}
+                    className={cn('text-body-sm text-primary font-medium', focusRing)}
                   >
                     View ticket
                   </Link>

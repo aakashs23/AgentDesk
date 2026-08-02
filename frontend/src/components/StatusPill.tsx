@@ -1,7 +1,7 @@
 import { cn, statusLabel } from '../lib/ui'
 
 /**
- * Doc 04: status pills are flat fills (never the gradient — that means AI) and
+ * Status pills are flat fills — never the AI violet, which means the model — and
  * always carry a text label, because colour alone is not an accessible signal.
  *
  * The palette has no per-status colours, only the priority/semantic set, so

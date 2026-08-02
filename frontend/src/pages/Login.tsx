@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 
 import { Button } from '../components/Button'
@@ -15,12 +15,6 @@ export function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-
-  // Login is the one screen every persona sees, so Doc 04 designs it once in
-  // the light, Aave-inspired style rather than theming it per role.
-  useEffect(() => {
-    document.documentElement.classList.remove('dark')
-  }, [])
 
   const from = (location.state as { from?: string } | null)?.from
 
@@ -50,9 +44,9 @@ export function Login() {
   return (
     <div className="bg-canvas text-ink flex min-h-dvh flex-col items-center justify-center p-24">
       <div className="w-full max-w-[420px]">
-        {/* The gradient text fill is Doc 04's single sanctioned exception to the
-            AI-signature-only gradient rule: first impression, not a signal. */}
-        <h1 className="text-gradient font-display text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-bold">
+        {/* Doc 07 §2 spends its confidence on contrast and alignment rather than
+            on a treated headline — the wordmark is set, not decorated. */}
+        <h1 className="text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-semibold tracking-[-0.02em]">
           AgentDesk
         </h1>
         <p className="text-body text-muted mt-16">
@@ -90,7 +84,7 @@ export function Login() {
         <div className="text-body-sm text-muted mt-24 flex flex-col gap-8">
           <Link
             to="/forgot-password"
-            className={cn('text-brand-start font-medium underline underline-offset-4', focusRing)}
+            className={cn('text-primary font-medium underline underline-offset-4', focusRing)}
           >
             Forgot your password?
           </Link>
@@ -98,7 +92,7 @@ export function Login() {
             New here?{' '}
             <Link
               to="/signup"
-              className={cn('text-brand-start font-medium underline underline-offset-4', focusRing)}
+              className={cn('text-primary font-medium underline underline-offset-4', focusRing)}
             >
               Create an account
             </Link>

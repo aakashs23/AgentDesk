@@ -10,6 +10,7 @@ import { Input } from '../../components/Input'
 import { SkeletonRows } from '../../components/Skeleton'
 import { Select } from '../../components/Select'
 import { Tabs } from '../../components/Tabs'
+import { Toggle } from '../../components/Toggle'
 import { ApiError, api } from '../../lib/api'
 import { humanise } from '../../lib/admin'
 import { toast } from '../../lib/toast'
@@ -32,8 +33,8 @@ export function TemplatesAndBranding() {
   const [tab, setTab] = useState('templates')
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Templates &amp; Branding</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Templates &amp; Branding</h1>
       <p className="text-body text-muted mt-8">
         The copy every notification is rendered from, per trigger and channel.
       </p>
@@ -125,41 +126,38 @@ function TemplateList() {
           />
         )}
 
-        <ul className="flex flex-col gap-8">
-          {(templates.data ?? []).map((template) => (
-            <li key={template.id}>
-              <Card className="flex flex-wrap items-center gap-16 p-16">
-                <div className="min-w-[240px] flex-1">
-                  <p className="text-body text-ink font-medium">
-                    {humanise(template.trigger_type)}
-                  </p>
-                  <p className="text-body-sm text-muted mt-4 truncate">
-                    {template.channel} · {template.subject_template ?? template.body_template}
-                  </p>
-                </div>
-                <span
-                  className={cn(
-                    'rounded-pill text-caption px-12 py-4 font-medium tracking-wide uppercase',
-                    template.is_active
-                      ? 'bg-success text-white'
-                      : 'border-border text-muted border',
-                  )}
+        {(templates.data ?? []).length > 0 && (
+          <Card className="overflow-hidden p-0">
+            <ul>
+              {(templates.data ?? []).map((template) => (
+                <li
+                  key={template.id}
+                  className="border-divider flex flex-wrap items-center gap-16 p-16 not-last:border-b"
                 >
-                  {template.is_active ? 'Active' : 'Off'}
-                </span>
-                <Button size="sm" onClick={() => toggle.mutate(template)}>
-                  {template.is_active ? 'Turn off' : 'Turn on'}
-                </Button>
-                <Button size="sm" onClick={() => setEditing(template)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setDeleting(template)}>
-                  Delete
-                </Button>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                  <div className="min-w-[240px] flex-1">
+                    <p className="text-body text-ink font-medium">
+                      {humanise(template.trigger_type)}
+                    </p>
+                    <p className="text-body-sm text-muted mt-4 truncate">
+                      {template.channel} · {template.subject_template ?? template.body_template}
+                    </p>
+                  </div>
+                  <Toggle
+                    checked={template.is_active}
+                    onChange={() => toggle.mutate(template)}
+                    label={template.is_active ? 'Active' : 'Off'}
+                  />
+                  <Button size="sm" onClick={() => setEditing(template)}>
+                    Edit
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDeleting(template)}>
+                    Delete
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
 
       {(editing || creating) && (
@@ -268,8 +266,8 @@ function TemplateEditor({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink w-full border p-12',
-              'focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+              'focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />
@@ -310,30 +308,33 @@ function TemplateEditor({
  * Branding is read-only, and says why. Doc 05 defines no settings/branding
  * table and the schema invariant forbids adding one, so a logo upload or a
  * portal accent picker would have nowhere to persist to. What the product does
- * guarantee is stated instead — Doc 04 assigns the mode per surface, and each
+ * guarantee is stated instead — Doc 07 is light on every surface, and each
  * user's own override lives on `users.theme_preference`.
  */
 function BrandingPanel() {
   return (
     <Card>
-      <h2 className="text-h3 font-display font-semibold">Portal appearance</h2>
+      <h2 className="text-h3 font-semibold">Portal appearance</h2>
       <p className="text-body-sm text-muted mt-8">
-        Fixed in this build. Doc 04 assigns the colour mode per surface rather than per tenant:
-        Customer Portal and Login are light-first, Agent Console and Admin Dashboard dark-first, and
-        an individual override lives in each user&rsquo;s Account Settings.
+        Fixed in this build. Every surface is light by default; dark is a personal choice, not a
+        tenant setting, and each person switches it in their own Account Settings.
       </p>
       <ul className="text-body-sm mt-16 flex flex-col gap-8">
-        <li className="border-border flex items-center justify-between border-b py-8">
+        <li className="border-divider flex items-center justify-between border-b py-8">
           <span>Customer Portal</span>
-          <span className="text-muted">Light-first</span>
+          <span className="text-muted">Light</span>
         </li>
-        <li className="border-border flex items-center justify-between border-b py-8">
+        <li className="border-divider flex items-center justify-between border-b py-8">
           <span>Agent Console</span>
-          <span className="text-muted">Dark-first</span>
+          <span className="text-muted">Light</span>
         </li>
         <li className="flex items-center justify-between py-8">
           <span>Admin Dashboard</span>
-          <span className="text-muted">Dark-first</span>
+          <span className="text-muted">Light</span>
+        </li>
+        <li className="border-divider flex items-center justify-between border-t py-8">
+          <span>Dark mode</span>
+          <span className="text-muted">Per person, in Account Settings</span>
         </li>
       </ul>
       <p className="text-body-sm text-muted mt-16">

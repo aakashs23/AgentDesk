@@ -55,7 +55,7 @@ export function MyTickets() {
   return (
     <div className="mx-auto max-w-[960px]">
       <div className="flex flex-wrap items-center justify-between gap-16">
-        <h1 className="font-display text-h1 font-semibold">My Tickets</h1>
+        <h1 className="text-h1 font-semibold">My Tickets</h1>
         <Button variant="primary" onClick={() => navigate('/portal/tickets/new')}>
           <Plus aria-hidden size={16} strokeWidth={1.5} />
           New Ticket
@@ -100,34 +100,42 @@ export function MyTickets() {
           />
         )}
 
-        {/* Doc 04's inbox-row pattern; on mobile these stack as full-width cards. */}
-        <ul className="flex flex-col gap-12">
-          {visible.map((ticket) => {
-            const priority = ticket.priority_id ? priorityById.get(ticket.priority_id) : undefined
-            return (
-              <li key={ticket.id}>
-                <Card interactive className="p-0">
-                  <Link
-                    to={`/portal/tickets/${ticket.id}`}
-                    className={cn('flex flex-col gap-8 p-16 md:p-24', focusRing)}
-                  >
-                    <div className="flex items-start justify-between gap-12">
-                      <span className="text-body text-ink font-medium">{ticket.subject}</span>
-                      <StatusPill status={ticket.status} className="shrink-0" />
-                    </div>
-                    <div className="text-body-sm text-muted flex flex-wrap items-center gap-12">
-                      <span className="text-data font-mono">{ticket.ref}</span>
-                      {priority && (
-                        <PriorityPill name={priority.name} colorHex={priority.color_hex} />
+        {/* One surface, divided rows — the same list shape the agent queue uses,
+            just roomier, because a requester reads a handful of these, not fifty. */}
+        {visible.length > 0 && (
+          <Card className="overflow-hidden p-0">
+            <ul>
+              {visible.map((ticket) => {
+                const priority = ticket.priority_id
+                  ? priorityById.get(ticket.priority_id)
+                  : undefined
+                return (
+                  <li key={ticket.id} className="border-divider not-last:border-b">
+                    <Link
+                      to={`/portal/tickets/${ticket.id}`}
+                      className={cn(
+                        'hover:bg-sunken transition-colors duration-micro flex flex-col gap-8 p-16 md:p-24',
+                        focusRing,
                       )}
-                      <time dateTime={ticket.created_at}>{relativeTime(ticket.created_at)}</time>
-                    </div>
-                  </Link>
-                </Card>
-              </li>
-            )
-          })}
-        </ul>
+                    >
+                      <div className="flex items-start justify-between gap-12">
+                        <span className="text-body text-ink font-medium">{ticket.subject}</span>
+                        <StatusPill status={ticket.status} className="shrink-0" />
+                      </div>
+                      <div className="text-body-sm text-muted flex flex-wrap items-center gap-12">
+                        <span className="text-data font-mono">{ticket.ref}</span>
+                        {priority && (
+                          <PriorityPill name={priority.name} colorHex={priority.color_hex} />
+                        )}
+                        <time dateTime={ticket.created_at}>{relativeTime(ticket.created_at)}</time>
+                      </div>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </Card>
+        )}
       </div>
     </div>
   )

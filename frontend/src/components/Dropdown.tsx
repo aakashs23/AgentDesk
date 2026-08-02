@@ -47,7 +47,7 @@ export function Dropdown({ trigger, label, align = 'start', children }: Dropdown
         <div
           role="menu"
           className={cn(
-            'rounded-card border-border bg-elevated shadow-elevated absolute z-50 mt-8 min-w-[224px] border p-4',
+            'rounded-card border-border bg-elevated shadow-overlay absolute z-50 mt-8 min-w-[224px] border p-4',
             'animate-[fade-in_var(--duration-dropdown)_ease-out]',
             align === 'end' ? 'right-0' : 'left-0',
           )}
@@ -67,7 +67,7 @@ export function DropdownItem({ className, ...props }: ButtonHTMLAttributes<HTMLB
       {...props}
       className={cn(
         'rounded-control text-body text-ink flex w-full cursor-pointer items-center gap-8 px-12 py-8 text-left',
-        'hover:bg-surface transition-colors duration-micro',
+        'hover:bg-sunken transition-colors duration-micro',
         focusRing,
         className,
       )}

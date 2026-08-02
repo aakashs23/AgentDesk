@@ -7,18 +7,9 @@ import { ApiError, api } from '../lib/api'
 import { HOME_BY_ROLE, useUser } from '../lib/auth'
 import { cn, focusRing } from '../lib/ui'
 
-/** Login, Sign Up and verification are all first-touch surfaces: light, Aave-
- *  styled, designed once regardless of the eventual role (Doc 04). */
-function useLightSurface() {
-  useEffect(() => {
-    document.documentElement.classList.remove('dark')
-  }, [])
-}
-
 export function SignUp() {
   const user = useUser()
   const navigate = useNavigate()
-  useLightSurface()
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -51,7 +42,7 @@ export function SignUp() {
   return (
     <div className="bg-canvas text-ink flex min-h-dvh flex-col items-center justify-center p-24">
       <div className="w-full max-w-[420px]">
-        <h1 className="text-gradient font-display text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-bold">
+        <h1 className="text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-semibold tracking-[-0.02em]">
           Get started
         </h1>
         <p className="text-body text-muted mt-16">
@@ -100,7 +91,7 @@ export function SignUp() {
           Already have an account?{' '}
           <Link
             to="/login"
-            className={cn('text-brand-start font-medium underline underline-offset-4', focusRing)}
+            className={cn('text-primary font-medium underline underline-offset-4', focusRing)}
           >
             Sign in
           </Link>
@@ -118,7 +109,6 @@ export function SignUp() {
 export function VerifyEmail() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  useLightSurface()
 
   const token = searchParams.get('token')
   const sentTo = searchParams.get('sent')
@@ -145,7 +135,7 @@ export function VerifyEmail() {
   return (
     <div className="bg-canvas text-ink flex min-h-dvh flex-col items-center justify-center p-24">
       <div className="w-full max-w-[420px]">
-        <h1 className="text-gradient font-display text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-bold">
+        <h1 className="text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-semibold tracking-[-0.02em]">
           {state === 'done' ? 'You’re verified' : 'Check your inbox'}
         </h1>
 
@@ -183,7 +173,6 @@ export function VerifyEmail() {
 
 /** Exported for the Login screen's "Forgot password?" link. */
 export function ForgotPassword() {
-  useLightSurface()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -204,7 +193,7 @@ export function ForgotPassword() {
   return (
     <div className="bg-canvas text-ink flex min-h-dvh flex-col items-center justify-center p-24">
       <div className="w-full max-w-[420px]">
-        <h1 className="text-gradient font-display text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-bold">
+        <h1 className="text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-semibold tracking-[-0.02em]">
           Reset password
         </h1>
 
@@ -232,7 +221,7 @@ export function ForgotPassword() {
         <p className="text-body-sm text-muted mt-24">
           <Link
             to="/login"
-            className={cn('text-brand-start font-medium underline underline-offset-4', focusRing)}
+            className={cn('text-primary font-medium underline underline-offset-4', focusRing)}
           >
             Back to sign in
           </Link>
@@ -246,7 +235,6 @@ export function ForgotPassword() {
 export function ResetPassword() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  useLightSurface()
 
   const token = searchParams.get('token') ?? ''
   const [password, setPassword] = useState('')
@@ -272,7 +260,7 @@ export function ResetPassword() {
   return (
     <div className="bg-canvas text-ink flex min-h-dvh flex-col items-center justify-center p-24">
       <div className="w-full max-w-[420px]">
-        <h1 className="text-gradient font-display text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-bold">
+        <h1 className="text-hero animate-[rise-in_var(--duration-page)_ease-out] leading-tight font-semibold tracking-[-0.02em]">
           Choose a password
         </h1>
         <form onSubmit={onSubmit} className="mt-48 flex flex-col gap-16" noValidate>

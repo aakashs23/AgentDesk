@@ -54,7 +54,7 @@ export function AgentKnowledgeBase() {
   return (
     <div className="mx-auto max-w-[960px]">
       <div className="flex flex-wrap items-center justify-between gap-16">
-        <h1 className="font-display text-h1 font-semibold">Knowledge Base</h1>
+        <h1 className="text-h1 font-semibold">Knowledge Base</h1>
         <Button
           variant="primary"
           icon={<Plus size={16} strokeWidth={1.5} />}
@@ -86,8 +86,8 @@ export function AgentKnowledgeBase() {
           placeholder="Search articles…"
           aria-label="Search articles"
           className={cn(
-            'rounded-control border-border bg-canvas text-ink h-[44px] w-full border pr-12 pl-32',
-            'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+            'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border pr-12 pl-32',
+            'placeholder:text-muted focus:border-primary transition-colors duration-micro',
             focusRing,
           )}
         />
@@ -217,9 +217,7 @@ export function KbArticleEditor() {
 
   return (
     <div className="mx-auto max-w-[760px]">
-      <h1 className="font-display text-h1 font-semibold">
-        {editing ? 'Edit article' : 'New article'}
-      </h1>
+      <h1 className="text-h1 font-semibold">{editing ? 'Edit article' : 'New article'}</h1>
       {sourceTicketId && !editing && (
         <p className="text-body-sm text-muted mt-8">
           Pre-filled from {sourceTicket.data?.ref ?? 'the resolved ticket'}. Rewrite it as guidance
@@ -236,7 +234,7 @@ export function KbArticleEditor() {
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
               focusRing,
             )}
           >
@@ -256,8 +254,8 @@ export function KbArticleEditor() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink w-full border p-12',
-              'focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+              'focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />
@@ -342,7 +340,7 @@ export function AgentKbArticle() {
     <div className="mx-auto max-w-[760px]">
       <div className="flex flex-wrap items-start justify-between gap-16">
         <div>
-          <h1 className="font-display text-h1 font-semibold">{article.data.title}</h1>
+          <h1 className="text-h1 font-semibold">{article.data.title}</h1>
           <p className="text-body-sm text-muted mt-8">
             {article.data.status} · updated{' '}
             <time dateTime={article.data.updated_at}>{relativeTime(article.data.updated_at)}</time>

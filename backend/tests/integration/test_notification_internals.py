@@ -136,7 +136,7 @@ def test_with_smtp_configured_the_message_is_sent(monkeypatch):
     events = []
 
     class FakeSMTP:
-        def __init__(self, host, port):
+        def __init__(self, host, port, timeout=None):
             events.append(("connect", host, port))
 
         def __enter__(self):
@@ -178,7 +178,7 @@ def test_an_anonymous_smtp_relay_skips_the_login_step(monkeypatch):
     events = []
 
     class FakeSMTP:
-        def __init__(self, *_args):
+        def __init__(self, *_args, **_kwargs):
             pass
 
         def __enter__(self):
@@ -200,3 +200,17 @@ def test_an_anonymous_smtp_relay_skips_the_login_step(monkeypatch):
     mailer.send_email("to@example.com", "Hello", "Body")
     assert "login" not in events, "an anonymous relay was sent credentials"
     assert "send" in events
+
+
+def test_a_dead_relay_does_not_raise_at_the_caller(monkeypatch):
+    """The invite/reset/ack callers have already committed their row when the mail
+    goes out — a refused relay must not turn that into a 500."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "smtp_host", "relay.example.com")
+
+    def explode(*_args, **_kwargs):
+        raise mailer.smtplib.SMTPConnectError(421, "service not available")
+
+    monkeypatch.setattr(mailer.smtplib, "SMTP", explode)
+    mailer.send_email("to@example.com", "Hello", "Body")  # no exception

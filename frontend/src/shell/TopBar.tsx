@@ -44,7 +44,9 @@ export function TopBar({
   })
 
   return (
-    <header className="border-border bg-canvas sticky top-0 z-40 flex h-[64px] shrink-0 items-center gap-16 border-b px-16 md:px-32">
+    // Doc 07 §7: 64px, surface-coloured, hairline divider, and the glass only
+    // matters once content scrolls beneath it — hence the translucent fill.
+    <header className="border-divider bg-surface/80 sticky top-0 z-40 flex h-[64px] shrink-0 items-center gap-16 border-b px-16 backdrop-blur-[12px] md:px-32">
       {onOpenNav && (
         <button
           type="button"
@@ -66,8 +68,10 @@ export function TopBar({
         type="button"
         onClick={onOpenSearch}
         className={cn(
-          'rounded-control border-border text-body text-muted hover:text-ink',
-          'flex h-[44px] flex-1 items-center gap-8 border px-12 md:max-w-[420px]',
+          // Doc 07 §17: a pill on the sunken fill, not a bordered input — it
+          // opens the palette rather than accepting text.
+          'rounded-pill bg-sunken text-body text-muted hover:text-ink',
+          'flex h-[44px] flex-1 items-center gap-8 px-16 md:max-w-[420px]',
           'cursor-pointer transition-colors duration-micro',
           focusRing,
         )}
@@ -89,7 +93,11 @@ export function TopBar({
         >
           <Bell aria-hidden size={20} strokeWidth={1.5} />
           {unread > 0 && (
-            <span className="rounded-pill bg-critical text-caption absolute top-4 right-4 min-w-16 px-4 text-center leading-4 text-white">
+            // `h-[16px]`, not `h-4`: this project keys the spacing scale in
+            // pixels (`--spacing-4: 4px`), so `h-4` compiles to a 4px-tall
+            // badge here rather than stock Tailwind's 16px. Centring with flex
+            // also retires the `leading-4` that was clipping the digits.
+            <span className="absolute -top-1 -right-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-critical px-1 text-[10px] font-bold text-white">
               {unread > 99 ? '99+' : unread}
             </span>
           )}

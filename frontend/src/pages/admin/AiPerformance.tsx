@@ -17,6 +17,7 @@ import { EmptyState } from '../../components/EmptyState'
 import { ReportRunner } from '../../components/ReportRunner'
 import { SkeletonRows } from '../../components/Skeleton'
 import { api } from '../../lib/api'
+import { chartAxis, chartGrid, chartLegend, chartTooltip } from '../../lib/charts'
 import { formatRate } from '../../lib/admin'
 import type { ReportOut } from '../../lib/types'
 
@@ -32,8 +33,8 @@ const TREND_REPORTS = [{ id: 'ai_performance_trend', label: 'AI performance over
  */
 export function AiPerformance() {
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">AI Performance</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">AI Performance</h1>
       <p className="text-body text-muted mt-8">
         Classification accuracy, auto-routing acceptance and draft approval — the three places a
         human overrules the pipeline.
@@ -42,7 +43,7 @@ export function AiPerformance() {
       <Headline />
 
       <Card className="mt-24">
-        <h2 className="text-h3 font-display font-semibold">Over time</h2>
+        <h2 className="text-h3 font-semibold">Over time</h2>
         <p className="text-body-sm text-muted mt-8">
           A falling acceptance rate means agents are correcting the model more often than they were.
         </p>
@@ -106,7 +107,7 @@ function Headline() {
 
         <Card>
           <p className="text-caption text-muted tracking-wide uppercase">Auto-routing accepted</p>
-          <p className="font-display text-h1 mt-12 font-semibold tabular-nums">
+          <p className="text-h1 mt-12 font-semibold tabular-nums">
             {formatRate(value('auto_routing_acceptance_rate'))}
           </p>
           <p className="text-body-sm text-muted mt-4">
@@ -116,7 +117,7 @@ function Headline() {
 
         <Card>
           <p className="text-caption text-muted tracking-wide uppercase">Draft approval</p>
-          <p className="font-display text-h1 mt-12 font-semibold tabular-nums">
+          <p className="text-h1 mt-12 font-semibold tabular-nums">
             {formatRate(value('draft_approval_rate'))}
           </p>
           <p className="text-body-sm text-muted mt-4">
@@ -126,7 +127,7 @@ function Headline() {
       </div>
 
       <Card className="mt-24">
-        <h2 className="text-h3 font-display font-semibold">Draft review outcomes</h2>
+        <h2 className="text-h3 font-semibold">Draft review outcomes</h2>
         <p className="text-body-sm text-muted mt-8">
           Human-in-the-loop is mandatory — no draft reaches a requester without an agent acting on
           it, so every draft ends in exactly one of these.
@@ -169,33 +170,20 @@ function TrendChart({ report }: { report: ReportOut }) {
     <div className="mt-24 h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
-          <CartesianGrid stroke="var(--color-border)" vertical={false} />
-          <XAxis
-            dataKey="day"
-            tick={{ fill: 'var(--color-muted)', fontSize: 12 }}
-            stroke="var(--color-border)"
-          />
-          <YAxis
-            domain={[0, 100]}
-            unit="%"
-            tick={{ fill: 'var(--color-muted)', fontSize: 12 }}
-            stroke="var(--color-border)"
-          />
-          <Tooltip
-            contentStyle={{
-              background: 'var(--color-elevated)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-card)',
-              color: 'var(--color-ink)',
-            }}
-          />
-          <Legend wrapperStyle={{ color: 'var(--color-muted)' }} />
-          {/* Two ends of the brand gradient: both series are model output. */}
+          <CartesianGrid {...chartGrid} />
+          <XAxis dataKey="day" {...chartAxis} />
+          <YAxis domain={[0, 100]} unit="%" {...chartAxis} />
+          <Tooltip {...chartTooltip} />
+          <Legend {...chartLegend} />
+          {/* Both series are model output, so both carry the AI violet — giving
+              one of them a different hue would claim a difference that isn't
+              there. They separate by dash pattern, which also survives a
+              colour-blind reader and a greyscale print. */}
           <Line
             type="monotone"
             dataKey="routing"
             name="Auto-routing accepted"
-            stroke="var(--color-brand-start)"
+            stroke="var(--color-ai)"
             strokeWidth={2}
             dot={false}
             connectNulls
@@ -204,7 +192,8 @@ function TrendChart({ report }: { report: ReportOut }) {
             type="monotone"
             dataKey="drafts"
             name="Drafts approved"
-            stroke="var(--color-brand-end)"
+            stroke="var(--color-ai)"
+            strokeDasharray="4 4"
             strokeWidth={2}
             dot={false}
             connectNulls

@@ -87,7 +87,12 @@ export function AppShell({ basePath, searchPlaceholder }: AppShellProps) {
             isPortal && 'pb-[72px] md:pb-24', // clearance for the bottom tab bar
           )}
         >
-          <Outlet />
+          {/* Doc 07 §4: the content wrapper caps at 1152px so ticket bodies and
+              articles stay inside a readable measure on a wide monitor. Screens
+              that want to be narrower still set their own max-width. */}
+          <div className="mx-auto w-full max-w-[1152px]">
+            <Outlet />
+          </div>
         </main>
       </div>
 

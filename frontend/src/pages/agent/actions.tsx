@@ -135,7 +135,7 @@ export function AssignModal({
             <label
               className={cn(
                 'rounded-control flex cursor-pointer items-center gap-12 px-12 py-8',
-                'hover:bg-surface transition-colors duration-micro',
+                'hover:bg-sunken transition-colors duration-micro',
                 selected === person.id && 'bg-surface',
               )}
             >
@@ -145,7 +145,7 @@ export function AssignModal({
                 value={person.id}
                 checked={selected === person.id}
                 onChange={() => setSelected(person.id)}
-                className={cn('accent-brand-start', focusRing)}
+                className={cn('accent-primary', focusRing)}
               />
               <Avatar name={person.full_name} seed={person.id} size="sm" />
               <span className="min-w-0">
@@ -265,8 +265,8 @@ export function MergeModal({
         placeholder="Search tickets…"
         aria-label="Search for the ticket to merge into"
         className={cn(
-          'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
-          'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+          'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
+          'placeholder:text-muted focus:border-primary transition-colors duration-micro',
           focusRing,
         )}
       />
@@ -280,7 +280,7 @@ export function MergeModal({
               aria-pressed={target?.id === hit.id}
               className={cn(
                 'rounded-control flex w-full cursor-pointer items-center justify-between gap-12 px-12 py-8 text-left',
-                'hover:bg-surface transition-colors duration-micro',
+                'hover:bg-sunken transition-colors duration-micro',
                 target?.id === hit.id && 'bg-surface',
                 focusRing,
               )}

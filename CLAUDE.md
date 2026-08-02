@@ -77,16 +77,19 @@ Tooling notes, so they don't get "fixed" back: **ruff only** (its formatter is b
 
 ## Docs are the source of truth
 
-The five spec documents are binding, not background reading. Before implementing anything, read the section the plan cites (`per TRD Section 5`) rather than re-deriving the decision.
+The spec documents are binding, not background reading. Before implementing anything, read the section the plan cites (`per TRD Section 5`) rather than re-deriving the decision.
 
 | Doc | Use it for |
 |---|---|
 | [01 PRD](docs/01%20AgentDesk%20PRD.md) | Scope — what's must-have vs. nice-to-have |
 | [02 TRD](docs/02%20AgentDesk%20TRD.md) | Stack, module boundaries, API surface (`/api/v1/...`), AI pipeline |
 | [03 App Flow](docs/03%20AgentDesk%20App%20Flow.md) | Ticket state machine (§10), SLA timer rules (§16), AI confidence tiers (§14) |
-| [04 UI/UX](docs/04%20AgentDesk%20UIUX.md) | Design tokens — Tailwind theme must match exactly |
+| ~~04 UI/UX~~ | **Superseded by Doc 07.** Historical only — its gradient, per-surface dark mode, and Space Grotesk are all retired |
 | [05 Backend Schema](docs/05%20AgentDesk%20Backend%20Schema.md) | Every table, FK, and index; RBAC matrix (§6–7) |
 | [06 Implementation Plan](docs/06%20AgentDesk%20Implementation%20Plan.md) | Ordered phases with sign-off checkpoints |
+| [07 UI/UX (current)](docs/07%20AgentDesk%20UIUX%20Updated%20Document.md) | Design tokens, layout, components, motion — the Tailwind theme must match |
+
+Two project-root files sit alongside them: [PRODUCT.md](PRODUCT.md) (who it's for, what wins when roles conflict, design principles) and [DESIGN.md](DESIGN.md) (the resolved token set, and every call Doc 07 left open).
 
 Phases are sequential by real dependency (schema → backend → auth → tickets → AI → automation → frontend). Don't start a phase before the previous checkpoint is verified.
 
@@ -113,7 +116,8 @@ Ticket creation persists first, then hands off to a LangGraph graph: PII redacti
 - **Human-in-the-loop is mandatory in the prototype**: low-confidence classifications route to manual categorization instead of auto-assignment, and every AI-drafted response needs explicit agent approval before sending. Auto-send is out of scope.
 - **Schema matches Document 05 exactly** — no added, dropped, or renamed columns, FKs, or indexes.
 - **Design tokens live only in `frontend/src/index.css`.** No component invents a colour, radius, shadow, type size, or spacing value. Note the spacing scale is keyed in pixels (`p-16` is 16px), so any Tailwind utility that reads the spacing namespace with a non-token number (`size-8`, `max-w-120`) will resolve to something surprising — write those as explicit `[32px]` values.
-- **The brand gradient means "the AI produced this"** — Doc 04's Signature Element. The only non-AI exceptions are the primary CTA, the active nav indicator, and the Login hero.
+- **The flat violet (`--color-ai`) means "the AI produced this"**, and marks nothing else — AI drafts, suggested categories, confidence chips, the reasoning panel, bot turns. Unlike Doc 04's gradient it has *no* exceptions: the primary CTA, the active nav indicator and the Login hero are all plain now. Human-authored content stays neutral, and the violet is always paired with a label so colour never carries the meaning alone.
+- **Doc 07 supersedes Doc 04 for anything visual** (see the docs table). Where Doc 07 is silent — the type scale, the dark scheme, the AI accent — [DESIGN.md](DESIGN.md) decides, and marks those calls `[resolved]`. Two of Doc 07's own specifics are deliberately not implemented, with the reason at the code: the 3px left-border sidebar active state (§6 offers a tint fill, which is what's built) and the 4px left-border toast status stripe (§16 — the tone icon already carries it). Both are the same side-stripe pattern, used nowhere in this codebase.
 
 ## Open decisions (do not silently pick one)
 

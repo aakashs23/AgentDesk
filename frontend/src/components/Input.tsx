@@ -27,7 +27,8 @@ export function Input({ label, hint, error, validate, className, id, ...props }:
 
   return (
     <div className="flex flex-col gap-8">
-      <label htmlFor={inputId} className="text-body-sm text-muted font-medium">
+      {/* Doc 07 §10: 13px, medium, ink — not the muted grey a label defaults to. */}
+      <label htmlFor={inputId} className="text-body-sm text-ink font-medium">
         {label}
       </label>
       <div className="relative">
@@ -50,9 +51,11 @@ export function Input({ label, hint, error, validate, className, id, ...props }:
             props.onChange?.(e)
           }}
           className={cn(
-            'rounded-control bg-canvas text-ink h-[44px] w-full border px-12',
+            // Doc 07 §12: sunken and borderless at rest, lifting to the surface
+            // colour with a primary border on focus.
+            'rounded-control bg-sunken text-ink h-[44px] w-full border px-12',
             'placeholder:text-muted transition-colors duration-micro',
-            shown ? 'border-critical' : 'border-border focus:border-brand-start',
+            shown ? 'border-critical' : 'border-transparent focus:bg-surface focus:border-primary',
             'disabled:cursor-not-allowed disabled:opacity-40',
             valid && 'pr-32', // room for the success checkmark
             focusRing,
@@ -71,7 +74,7 @@ export function Input({ label, hint, error, validate, className, id, ...props }:
       {(shown || hint) && (
         <p
           id={messageId}
-          className={cn('text-body-sm', shown ? 'text-critical' : 'text-muted')}
+          className={cn('text-caption', shown ? 'text-critical' : 'text-muted')}
           role={shown ? 'alert' : undefined}
         >
           {shown ?? hint}

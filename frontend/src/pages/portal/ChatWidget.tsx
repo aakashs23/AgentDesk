@@ -113,14 +113,14 @@ export function ChatWidget() {
 
   return (
     <>
-      {/* The launcher carries the gradient because what it opens is the AI
-          assistant — Doc 04's signature rule, not decoration. */}
+      {/* The launcher carries the AI violet because what it opens is the model —
+          the signature rule, not decoration. */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Chat with the AgentDesk assistant"
         className={cn(
-          'bg-linear-to-r from-brand-start to-brand-end shadow-glow fixed right-16 z-40',
+          'bg-ai-fill shadow-card fixed right-16 z-40',
           'rounded-pill flex cursor-pointer items-center gap-8 px-16 text-white',
           'bottom-[88px] h-[52px] md:bottom-24', // above the mobile tab bar
           'transition-[filter] duration-button hover:brightness-108 active:brightness-95',
@@ -136,16 +136,16 @@ export function ChatWidget() {
         ref={dialogRef}
         aria-label="AgentDesk assistant"
         className={cn(
-          'border-border bg-elevated text-ink shadow-elevated border backdrop:bg-black/40',
+          'border-border bg-elevated text-ink shadow-overlay border backdrop:bg-ink/60 backdrop:backdrop-blur-[4px]',
           'open:flex open:flex-col',
           // Bottom sheet on mobile, anchored panel on desktop (Doc 04 responsive).
-          'mt-auto mb-0 ml-auto h-[80dvh] max-h-[80dvh] w-full max-w-full rounded-t-[10px]',
+          'mt-auto mb-0 ml-auto h-[80dvh] max-h-[80dvh] w-full max-w-full rounded-t-card',
           'md:rounded-card md:mr-24 md:mb-24 md:h-[560px] md:max-h-[80dvh] md:w-[400px]',
-          'open:animate-[slide-in-bottom_var(--duration-drawer)_ease-out]',
+          'open:animate-[slide-in-bottom_var(--duration-drawer)_var(--ease-drawer)]',
         )}
       >
-        <header className="bg-linear-to-r from-brand-start to-brand-end flex items-center justify-between px-16 py-12 text-white">
-          <p className="text-caption flex items-center gap-8 tracking-wide uppercase">
+        <header className="bg-ai-tint text-ai border-divider flex items-center justify-between border-b px-16 py-12">
+          <p className="text-caption flex items-center gap-8 font-medium tracking-wide uppercase">
             <Sparkles aria-hidden size={16} strokeWidth={1.5} />
             AgentDesk assistant
           </p>
@@ -180,7 +180,7 @@ export function ChatWidget() {
                   to={`/portal/kb/${article.id}`}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    'text-body-sm text-ink hover:text-brand-start underline underline-offset-4',
+                    'text-body-sm text-ink hover:text-primary underline underline-offset-4',
                     focusRing,
                   )}
                 >
@@ -226,8 +226,8 @@ export function ChatWidget() {
               placeholder="Describe your issue…"
               autoComplete="off"
               className={cn(
-                'rounded-control border-border bg-canvas text-ink h-[44px] min-w-0 flex-1 border px-12',
-                'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+                'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] min-w-0 flex-1 border px-12',
+                'placeholder:text-muted focus:border-primary transition-colors duration-micro',
                 focusRing,
               )}
             />
@@ -263,7 +263,7 @@ function Bubble({ message }: { message: ChatMessage }) {
           <p className="text-caption text-muted mb-4 flex items-center gap-4 tracking-wide uppercase">
             {message.speaker === 'bot' ? (
               <>
-                <Sparkles aria-hidden size={14} strokeWidth={1.5} className="text-brand-start" />
+                <Sparkles aria-hidden size={14} strokeWidth={1.5} className="text-ai" />
                 Assistant
               </>
             ) : (

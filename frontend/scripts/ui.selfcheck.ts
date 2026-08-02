@@ -38,20 +38,49 @@ import {
   needsExactMatch,
   relativeTime,
   resolveTheme,
+  splitOnMatch,
   surfaceDefault,
 } from '../src/lib/ui.ts'
 
-// Doc 04: product surfaces are dark-first, first-touch surfaces light-first.
-assert.equal(surfaceDefault('/agent/queue'), 'dark')
-assert.equal(surfaceDefault('/admin'), 'dark')
+// Doc 07 is light-first everywhere — no surface picks dark for you any more.
+assert.equal(surfaceDefault('/agent/queue'), 'light')
+assert.equal(surfaceDefault('/admin'), 'light')
 assert.equal(surfaceDefault('/portal/tickets'), 'light')
 assert.equal(surfaceDefault('/login'), 'light')
 
-// An explicit preference beats the surface default in both directions.
-assert.equal(resolveTheme('system', '/agent/queue'), 'dark')
-assert.equal(resolveTheme('light', '/agent/queue'), 'light')
+// An explicit preference beats the default in both directions; `system` follows it.
+assert.equal(resolveTheme('system', '/agent/queue'), 'light')
+assert.equal(resolveTheme('dark', '/agent/queue'), 'dark')
 assert.equal(resolveTheme('dark', '/portal/tickets'), 'dark')
 assert.equal(resolveTheme('system', '/portal/tickets'), 'light')
+
+// Palette match highlighting (Doc 07 §18). Concatenating the parts must always
+// reproduce the input exactly — a highlighter that drops or duplicates a
+// character silently corrupts every result label it touches.
+for (const [text, query] of [
+  ['Ticket Queue', 'que'],
+  ['Ticket Queue', ''],
+  ['Ticket Queue', 'zzz'],
+  ['banana', 'an'],
+  ['AAA', 'a'],
+  ['Audit Log', 'Audit Log'],
+] as const) {
+  assert.equal(
+    splitOnMatch(text, query)
+      .map((p) => p.text)
+      .join(''),
+    text,
+  )
+}
+// Case-insensitive, and every occurrence is marked, not just the first.
+assert.deepEqual(splitOnMatch('Ticket Queue', 'que'), [
+  { text: 'Ticket ', match: false },
+  { text: 'Que', match: true },
+  { text: 'ue', match: false },
+])
+assert.equal(splitOnMatch('banana', 'an').filter((p) => p.match).length, 2)
+// An empty query highlights nothing, so an unfiltered list renders plainly.
+assert.deepEqual(splitOnMatch('Ticket Queue', '   '), [{ text: 'Ticket Queue', match: false }])
 
 // Only an item with something nested under it needs exact matching, otherwise
 // /admin would stay highlighted while sitting on /admin/users.

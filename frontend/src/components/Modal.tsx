@@ -23,14 +23,16 @@ export function Modal({ open, onClose, title, size = 'form', children, footer }:
       ref={ref}
       aria-labelledby="modal-title"
       className={cn(
-        'rounded-card border-border bg-elevated text-ink shadow-elevated m-auto w-[calc(100%-32px)] border p-32',
+        'rounded-card bg-elevated text-ink shadow-overlay m-auto w-[calc(100%-32px)] p-32',
+        'dark:border-border dark:border',
         size === 'confirm' ? 'max-w-[480px]' : 'max-w-[640px]',
-        'backdrop:bg-black/40',
-        'open:animate-[rise-in_var(--duration-modal)_ease-out]',
+        // Doc 07 §14: an ink-tinted, lightly blurred scrim rather than flat black.
+        'backdrop:bg-ink/60 backdrop:backdrop-blur-[4px]',
+        'open:animate-[scale-in_var(--duration-modal)_var(--ease-macro)]',
       )}
     >
       <div className="flex items-start justify-between gap-16">
-        <h2 id="modal-title" className="text-h3 font-display font-semibold">
+        <h2 id="modal-title" className="text-h3 font-semibold">
           {title}
         </h2>
         <button

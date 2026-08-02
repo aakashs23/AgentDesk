@@ -20,8 +20,14 @@ def send_email(to: str, subject: str, body: str) -> None:
     message["To"] = to
     message["Subject"] = subject
     message.set_content(body)
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as smtp:
-        smtp.starttls()
-        if settings.smtp_user:
-            smtp.login(settings.smtp_user, settings.smtp_password)
-        smtp.send_message(message)
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
+            smtp.starttls()
+            if settings.smtp_user:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+            smtp.send_message(message)
+    except OSError as exc:
+        # ponytail: log and swallow. Callers (invite, reset, ack, notifications) have
+        # already committed their row; a dead relay must not 500 the request or roll
+        # that back. Add a retry queue when delivery has to be guaranteed.
+        logger.error("email delivery failed to=%s subject=%r: %s", to, subject, exc)

@@ -69,7 +69,7 @@ export function SetupBanner() {
     <Card className="mt-24">
       <div className="flex flex-wrap items-center justify-between gap-16">
         <div>
-          <h2 className="text-h3 font-display font-semibold">Finish setting up</h2>
+          <h2 className="text-h3 font-semibold">Finish setting up</h2>
           <p className="text-body-sm text-muted mt-4">
             The Customer Portal can take tickets, but until every step is done they arrive with no
             deadline and no queue.
@@ -109,7 +109,7 @@ export function FirstTimeSetup() {
 
   return (
     <div className="mx-auto max-w-[960px]">
-      <h1 className="font-display text-h1 font-semibold">Set up AgentDesk</h1>
+      <h1 className="text-h1 font-semibold">Set up AgentDesk</h1>
       <p className="text-body text-muted mt-8">
         Five things stand between an empty deployment and a working help desk. Each one is the same
         form as its permanent screen, so nothing has to be redone later.
@@ -126,7 +126,7 @@ export function FirstTimeSetup() {
             a goal no more than it does anywhere else, so this stays a flat fill. */}
         <div className="bg-surface rounded-pill mt-8 h-[8px] overflow-hidden">
           <div
-            className="bg-brand-start h-full transition-[width] duration-normal"
+            className="bg-primary h-full transition-[width] duration-normal"
             style={{ width: `${progress}%` }}
             role="progressbar"
             aria-valuenow={progress}
@@ -152,7 +152,7 @@ export function FirstTimeSetup() {
                   {step.done ? <Check size={14} strokeWidth={2} /> : index + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-h3 font-display font-semibold">
+                  <h2 className="text-h3 font-semibold">
                     {step.label}
                     {step.done && (
                       <span className="text-body-sm text-muted ml-8 font-normal">Done</span>
@@ -169,7 +169,7 @@ export function FirstTimeSetup() {
       <Card className="mt-24">
         <div className="flex flex-wrap items-center justify-between gap-16">
           <div>
-            <h2 className="text-h3 font-display font-semibold">Automation rules</h2>
+            <h2 className="text-h3 font-semibold">Automation rules</h2>
             <p className="text-body-sm text-muted mt-4">
               Optional at this stage (§26 step 6) — add them once you have seen real tickets arrive.
             </p>
@@ -189,9 +189,7 @@ export function FirstTimeSetup() {
             className={ready ? 'text-success' : 'text-muted'}
           />
           <div className="min-w-0 flex-1">
-            <h2 className="text-h3 font-display font-semibold">
-              {ready ? 'System ready' : 'Not ready yet'}
-            </h2>
+            <h2 className="text-h3 font-semibold">{ready ? 'System ready' : 'Not ready yet'}</h2>
             <p className="text-body-sm text-muted mt-4">
               {ready
                 ? 'Requesters can submit tickets, and the pipeline has a taxonomy, a queue and an SLA to route them against.'

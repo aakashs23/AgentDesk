@@ -34,7 +34,7 @@ export function LiveChats() {
   return (
     <div className="flex flex-col gap-24">
       <div>
-        <h1 className="font-display text-h1 font-semibold">Live Chats</h1>
+        <h1 className="text-h1 font-semibold">Live Chats</h1>
         <p className="text-body text-muted mt-8">
           Conversations still open in the portal widget. Joining one takes it off the assistant.
         </p>
@@ -58,8 +58,8 @@ export function LiveChats() {
                 onClick={() => setSelected(session.session_id)}
                 className={cn(
                   'rounded-card border-border w-full cursor-pointer border p-12 text-left',
-                  'transition-colors duration-micro hover:border-brand-start',
-                  selected === session.session_id && 'border-brand-start bg-surface',
+                  'transition-colors duration-micro hover:border-primary',
+                  selected === session.session_id && 'border-primary bg-surface',
                   focusRing,
                 )}
               >
@@ -144,8 +144,8 @@ function Conversation({ sessionId }: { sessionId: string }) {
           placeholder={phase === 'with-agent' ? 'Reply…' : 'Join this conversation…'}
           autoComplete="off"
           className={cn(
-            'rounded-control border-border bg-canvas text-ink h-[44px] min-w-0 flex-1 border px-12',
-            'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+            'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] min-w-0 flex-1 border px-12',
+            'placeholder:text-muted focus:border-primary transition-colors duration-micro',
             focusRing,
           )}
         />

@@ -1,45 +1,62 @@
 @import 'tailwindcss';
 
-/* Design tokens — Document 04 (UI/UX), verbatim. Never add a color, radius,
-   spacing value, or second gradient that isn't defined here (Doc 04, "Never" rules). */
+/* Design tokens — Document 07 (Master UI/UX Spec), which supersedes Document 04.
+   Resolved against DESIGN.md where Doc 07 is silent (type scale, dark scheme, the
+   AI accent). Never add a color, radius, spacing value, or shadow that isn't here. */
 
 @theme {
-  /* Light mode is the token default (Customer Portal, Login, onboarding).
-     Dark mode overrides below (Agent Console, Admin Dashboard, Ticket Detail). */
-  --color-canvas: #ffffff;
-  --color-surface: #f7f7f9;
-  --color-elevated: #ffffff; /* Doc 04 defines no separate light elevated surface */
-  --color-border: #e7e7eb;
-  --color-ink: #0b0b0f;
-  --color-muted: #6b6b76;
+  /* Light is the default on every surface now — Portal, Agent Console, Admin alike.
+     Doc 04's per-surface dark/light split is retired; dark is a user preference. */
+  --color-canvas: #f9fafb;
+  --color-surface: #ffffff;
+  --color-elevated: #ffffff; /* modals/drawers sit on shadow, not on a lighter fill */
+  --color-sunken: #f3f4f6; /* inputs at rest, row hover, skeletons, search pill */
+  --color-border: #e5e7eb;
+  --color-divider: #f3f4f6;
+  --color-ink: #111827;
+  --color-muted: #6b7280; /* 4.7:1 on canvas — the lightest text allowed */
 
-  /* Brand gradient — the product's one gradient, and it means "AI generated". */
-  --color-brand-start: #4f7cff;
-  --color-brand-end: #8b5cf6;
+  /* Interaction. One blue, used for actions, selection, and state — never decoration.
+     `primary` is the text/border/icon value and lightens on dark; `primary-fill` is
+     the solid a white label sits on and is deliberately identical in both schemes. */
+  --color-primary: #0066ff;
+  --color-primary-fill: #0066ff; /* white on this = 4.8:1 */
+  --color-primary-hover: #0052cc;
+  --color-primary-tint: rgb(0 102 255 / 0.08); /* active nav, selected row */
 
-  /* Semantic / status — flat fills, never gradient. */
-  --color-critical: #f05252;
-  --color-high: #f5a623;
-  --color-medium: #8a93a6;
-  --color-low: #34d399;
-  --color-sla-breach: #f05252;
-  --color-sla-risk: #f5a623;
-  --color-success: #34d399;
+  /* AI provenance. Flat violet marks anything the model produced or suggested, and
+     nothing else. It replaced Doc 04's brand gradient, which is gone entirely.
+     Always paired with a label — the color never carries the meaning alone. */
+  --color-ai: #7c3aed; /* 5.7:1 on white; #8B5CF6 was only 4.2:1 */
+  --color-ai-fill: #7c3aed;
+  --color-ai-tint: rgb(124 58 237 / 0.08);
 
-  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  /* Semantic / status — flat fills, always accompanied by a text label. */
+  --color-critical: #ef4444;
+  --color-high: #f59e0b;
+  --color-medium: #6b7280;
+  --color-low: #10b981;
+  --color-sla-breach: #ef4444;
+  --color-sla-risk: #f59e0b;
+  --color-success: #10b981;
+
+  /* One UI family plus mono. Space Grotesk and the separate display face are
+     gone: headings are Inter at a heavier weight, which is what a product UI
+     wants — a display face in labels and buttons is the giveaway. */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --text-hero: 3.5rem; /* 56px, responsive down to 40px */
-  --text-h1: 2rem; /* 32px */
-  --text-h2: 1.5rem; /* 24px */
-  --text-h3: 1.125rem; /* 18px */
-  --text-body: 0.9375rem; /* 15px */
-  --text-body-sm: 0.8125rem; /* 13px */
-  --text-data: 0.8125rem; /* 13px, mono */
-  --text-caption: 0.75rem; /* 12px, uppercase, letter-spaced */
+  /* Fixed rem steps, ratio ~1.12. No fluid clamps — Doc 07 §21. */
+  --text-hero: 2rem; /* 32px — Login headline, dashboard metrics */
+  --text-h1: 1.5rem; /* 24px — page titles */
+  --text-h2: 1.25rem; /* 20px — section headings */
+  --text-h3: 1.125rem; /* 18px — card and empty-state titles */
+  --text-body: 0.875rem; /* 14px — body, inputs, buttons, table cells */
+  --text-body-sm: 0.8125rem; /* 13px — form labels, dense metadata */
+  --text-data: 0.8125rem; /* 13px, mono — ids, timestamps, durations */
+  --text-caption: 0.75rem; /* 12px — table headers, captions, inline errors */
 
-  /* Spacing scale — every margin/padding/gap comes from here, no arbitrary values. */
+  /* 4pt baseline grid. Every margin/padding/gap comes from here. */
   --spacing-4: 4px;
   --spacing-8: 8px;
   --spacing-12: 12px;
@@ -50,58 +67,74 @@
   --spacing-64: 64px;
   --spacing-96: 96px;
 
-  /* Exactly three radii: cards/panels/modals, buttons/inputs, chips/badges/avatars. */
-  --radius-card: 10px;
-  --radius-control: 8px;
-  --radius-pill: 999px;
+  /* Exactly four radii — Doc 07 §25. */
+  --radius-chip: 4px; /* tags, small badges */
+  --radius-control: 8px; /* buttons, inputs, sidebar items */
+  --radius-card: 16px; /* cards, modals, drawers, popovers */
+  --radius-pill: 9999px; /* avatars, search, status pills */
 
-  /* Elevation: hairline for dense views, soft shadow for overlays only. */
-  --shadow-elevated: 0 10px 30px -10px rgb(0 0 0 / 0.35);
-  --shadow-glow: 0 0 40px -8px rgb(79 124 255 / 0.45);
+  /* Elevation: card shadow separates in light, borders do the work in dark. */
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -1px rgb(0 0 0 / 0.03);
+  --shadow-overlay: 0 25px 50px -12px rgb(0 0 0 / 0.25);
 
-  /* Avatar-initial fills — the rotating blues/violets/teals set Doc 04 sanctions
-     for assignee chips. Not general-purpose colors; only <Avatar> may use them. */
-  --color-avatar-1: #4f7cff;
-  --color-avatar-2: #8b5cf6;
-  --color-avatar-3: #2dd4bf;
-  --color-avatar-4: #6366f1;
-  --color-avatar-5: #0ea5e9;
+  /* Avatar-initial fills — the only place a rotating color set is sanctioned.
+     Not general-purpose; only <Avatar> may use them. */
+  --color-avatar-1: #0066ff;
+  --color-avatar-2: #7c3aed;
+  --color-avatar-3: #0e9488;
+  --color-avatar-4: #4f46e5;
+  --color-avatar-5: #0284c7;
 
-  /* Animation timing table, Doc 04 "Animation Timing". Nothing exceeds 300ms. */
+  /* Motion — Doc 07 §20. Fast, purposeful, interruptible; nothing over 300ms. */
   --duration-micro: 150ms;
-  --duration-button: 180ms;
+  --duration-button: 150ms;
   --duration-card: 200ms;
-  --duration-dropdown: 180ms;
-  --duration-modal: 220ms;
-  --duration-drawer: 250ms;
+  --duration-dropdown: 150ms;
+  --duration-modal: 250ms;
+  --duration-drawer: 300ms;
   --duration-page: 250ms;
+
+  --ease-macro: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-drawer: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Dark mode is opt-in per surface (`<html class="dark">` or a wrapper),
-   not driven by OS preference — Doc 04 assigns mode by surface, not by user setting. */
+/* Dark is a user preference, applied as `<html class="dark">`. Authored as its own
+   scheme on the same blue-gray family as the ink color, not derived by inversion —
+   iOS and Android both treat dark as a first-class appearance. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 .dark {
-  --color-canvas: #0b0b0f;
-  --color-surface: #16161d;
-  --color-elevated: #1c1c25;
-  --color-border: #2a2a35;
-  --color-ink: #f4f4f6;
-  --color-muted: #9a9aa5;
+  --color-canvas: #0b0e14;
+  --color-surface: #141821;
+  --color-elevated: #1b2029;
+  --color-sunken: #1e232d;
+  --color-border: #262c38;
+  --color-divider: #1e232d;
+  --color-ink: #f3f4f6;
+  --color-muted: #9ca3af;
+
+  /* #0066FF and #7C3AED only reach ~3.1–3.6:1 on these surfaces, so the text /
+     icon / border values lighten. The `-fill` pair does NOT: those are solids
+     carrying white labels, and they'd fail the other way round if lightened. */
+  --color-primary: #5b9bff;
+  --color-primary-tint: rgb(91 155 255 / 0.12);
+  --color-ai: #a78bfa;
+  --color-ai-tint: rgb(167 139 250 / 0.12);
+
+  /* The semantics stay put. Every one of them already clears 4.5:1 as text on
+     these surfaces *and* carries white on its own fill — lightening them would
+     break the status pills, which are the thing they mostly are. */
+
+  /* Shadows read as nothing on near-black; cards separate by border instead. */
+  --shadow-card: none;
 }
 
-@utility text-gradient {
-  background-image: linear-gradient(90deg, var(--color-brand-start), var(--color-brand-end));
-  background-clip: text;
-  color: transparent;
-}
-
-/* --- Loading states (Doc 04, "Loading States") ------------------------------
-   Two visually distinct treatments, deliberately: `skeleton` means "data is
-   loading", `ai-shimmer` means "the model is thinking". */
+/* --- Loading states (Doc 07 §30) --------------------------------------------
+   Two distinct treatments on purpose: `skeleton` means "data is loading",
+   `ai-shimmer` means "the model is thinking". */
 
 @utility skeleton {
-  background-color: var(--color-surface);
+  background-color: var(--color-sunken);
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
@@ -110,7 +143,7 @@
   overflow: hidden;
 }
 
-/* Brand gradient at low opacity sweeping across — the "AI is working" signal. */
+/* The AI accent sweeping across at low opacity — the "AI is working" signal. */
 .ai-shimmer::after {
   content: '';
   position: absolute;
@@ -118,8 +151,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--color-brand-start) 22%, transparent),
-    color-mix(in srgb, var(--color-brand-end) 22%, transparent),
+    color-mix(in srgb, var(--color-ai) 18%, transparent),
     transparent
   );
   animation: ai-sweep 1.6s ease-in-out infinite;
@@ -140,12 +172,21 @@
   }
 }
 
-/* Entrances. Elements animate once on first paint, never on re-render — which
-   is enforced by only ever putting these on mount, not on state change. */
+/* Entrances. Elements animate once on first paint, never on re-render — enforced
+   by only ever putting these on mount, not on state change. */
 @keyframes rise-in {
   from {
     opacity: 0;
     transform: translateY(8px);
+  }
+}
+
+/* Doc 07 §14: modals scale up from 0.95 rather than rising, so the eye lands on
+   the centre of the dialog instead of tracking it upward. */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
 }
 
@@ -182,8 +223,18 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Doc 04: nothing in the product is load-bearing on motion, so reduced-motion
-     kills every animation and transition outright rather than tuning each one. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Nothing in the product is load-bearing on motion, so reduced-motion kills
+     every animation and transition outright rather than tuning each one. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

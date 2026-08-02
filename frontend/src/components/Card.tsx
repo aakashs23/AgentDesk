@@ -16,13 +16,14 @@ export function Card({ interactive = false, className, ...props }: CardProps) {
     <div
       {...props}
       className={cn(
-        // Hairline border rather than shadow: on near-black surfaces a shadow
-        // alone leaves cards illegible (Doc 04, "Definition on dark surfaces").
-        'rounded-card border-border bg-surface border p-16 md:p-24',
+        // Doc 07 §13: borderless, separated by shadow. On near-black a shadow
+        // reads as nothing, so dark swaps it for the hairline it needs instead.
+        'rounded-card bg-surface shadow-card p-16 md:p-24',
+        'dark:border-border dark:border',
         interactive &&
           cn(
             'cursor-pointer transition-[transform,box-shadow] duration-card ease-out',
-            'hover:shadow-elevated hover:-translate-y-0.5',
+            'hover:shadow-overlay hover:-translate-y-0.5',
             focusRing,
           ),
         className,

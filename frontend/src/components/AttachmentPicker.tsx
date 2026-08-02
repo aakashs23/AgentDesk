@@ -85,7 +85,7 @@ export function AttachmentPicker({
                     className="bg-surface mt-8 h-1 w-full overflow-hidden rounded-pill"
                   >
                     <div
-                      className="bg-brand-start h-full transition-[width] duration-micro"
+                      className="bg-primary h-full transition-[width] duration-micro"
                       style={{ width: `${queued.progress * 100}%` }}
                     />
                   </div>

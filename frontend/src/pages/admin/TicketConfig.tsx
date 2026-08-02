@@ -28,8 +28,8 @@ export function TicketConfiguration() {
   const [tab, setTab] = useState('categories')
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Ticket Configuration</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Ticket Configuration</h1>
       <p className="text-body text-muted mt-8">
         The vocabulary every ticket is classified against — and what the AI pipeline routes on.
       </p>
@@ -72,7 +72,7 @@ function Panel({
   return (
     <>
       <Card>
-        <h2 className="text-h3 font-display font-semibold">{title}</h2>
+        <h2 className="text-h3 font-semibold">{title}</h2>
         {form}
       </Card>
       <div className="mt-24">{children}</div>
@@ -559,7 +559,7 @@ function TagPanel() {
 function StatusPanel() {
   return (
     <Card>
-      <h2 className="text-h3 font-display font-semibold">Ticket statuses</h2>
+      <h2 className="text-h3 font-semibold">Ticket statuses</h2>
       <p className="text-body-sm text-muted mt-8">
         Fixed vocabulary — the workflow engine enforces these transitions (App Flow §10) and rejects
         anything else, so they are shown here rather than edited.

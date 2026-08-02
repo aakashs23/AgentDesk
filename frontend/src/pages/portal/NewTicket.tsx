@@ -145,7 +145,7 @@ export function NewTicket() {
 
   return (
     <div className="mx-auto max-w-[640px]">
-      <h1 className="font-display text-h1 font-semibold">New Ticket</h1>
+      <h1 className="text-h1 font-semibold">New Ticket</h1>
       <p className="text-body text-muted mt-8">
         Tell us what's going on and we'll route it to the right person.
       </p>
@@ -174,8 +174,8 @@ export function NewTicket() {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What happened, what you expected, and anything you've already tried"
             className={cn(
-              'rounded-control border-border bg-canvas text-ink w-full border p-12',
-              'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+              'placeholder:text-muted focus:border-primary transition-colors duration-micro',
               'disabled:cursor-not-allowed disabled:opacity-40',
               focusRing,
             )}
@@ -196,8 +196,8 @@ export function NewTicket() {
             disabled={ticketExists}
             onChange={(e) => setCategoryId(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink h-[44px] w-full border px-12',
-              'focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary h-[44px] w-full border px-12',
+              'focus:border-primary transition-colors duration-micro',
               'disabled:cursor-not-allowed disabled:opacity-40',
               focusRing,
             )}
@@ -268,7 +268,7 @@ function KbSuggestions({ articles }: { articles: KbArticleSummary[] }) {
             <Link
               to={`/portal/kb/${article.id}`}
               className={cn(
-                'text-body text-ink hover:text-brand-start underline underline-offset-4',
+                'text-body text-ink hover:text-primary underline underline-offset-4',
                 focusRing,
               )}
             >
@@ -290,10 +290,8 @@ function ProcessingState() {
   return (
     <div className="mx-auto flex max-w-[640px] flex-col items-center py-96 text-center">
       <div role="status" aria-live="polite" className="ai-shimmer rounded-card w-full p-32">
-        <Sparkles aria-hidden size={24} strokeWidth={1.5} className="text-brand-start mx-auto" />
-        <h1 className="font-display text-h2 mt-24 font-semibold">
-          AgentDesk is reviewing your ticket…
-        </h1>
+        <Sparkles aria-hidden size={24} strokeWidth={1.5} className="text-ai mx-auto" />
+        <h1 className="text-h2 mt-24 font-semibold">AgentDesk is reviewing your ticket…</h1>
         <p className="text-body text-muted mt-8">
           We're classifying it and finding the right person. This only takes a moment.
         </p>

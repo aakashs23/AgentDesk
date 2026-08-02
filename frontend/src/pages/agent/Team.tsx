@@ -8,6 +8,7 @@ import { EmptyState, ErrorState } from '../../components/EmptyState'
 import { ReportRunner } from '../../components/ReportRunner'
 import { SkeletonRows } from '../../components/Skeleton'
 import { api } from '../../lib/api'
+import { chartAxis, chartCursor, chartGrid, chartTooltip } from '../../lib/charts'
 import { formatDuration } from '../../lib/agent'
 import type { DashboardMetrics } from '../../lib/types'
 import { cn, focusRing } from '../../lib/ui'
@@ -41,8 +42,8 @@ export function TeamWorkload() {
     metrics.data
 
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Team Workload</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Team Workload</h1>
       <p className="text-body text-muted mt-8">
         Open tickets per agent, for rebalancing before anything breaches.
       </p>
@@ -58,7 +59,7 @@ export function TeamWorkload() {
       </div>
 
       <Card className="mt-24">
-        <h2 className="text-h3 font-display font-semibold">Open tickets by agent</h2>
+        <h2 className="text-h3 font-semibold">Open tickets by agent</h2>
         {agent_workload.length === 0 ? (
           <EmptyState icon={Users} title="Nothing assigned in your team right now" />
         ) : (
@@ -66,29 +67,13 @@ export function TeamWorkload() {
             <div className="mt-24 h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={agent_workload}>
-                  <CartesianGrid stroke="var(--color-border)" vertical={false} />
-                  <XAxis
-                    dataKey="full_name"
-                    tick={{ fill: 'var(--color-muted)', fontSize: 12 }}
-                    stroke="var(--color-border)"
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: 'var(--color-muted)', fontSize: 12 }}
-                    stroke="var(--color-border)"
-                  />
-                  <Tooltip
-                    cursor={{ fill: 'var(--color-surface)' }}
-                    contentStyle={{
-                      background: 'var(--color-elevated)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: 'var(--radius-card)',
-                      color: 'var(--color-ink)',
-                    }}
-                  />
-                  {/* Flat brand-start fill, not the gradient — a workload count
-                      is a database fact, not something a model produced. */}
-                  <Bar dataKey="open_tickets" fill="var(--color-brand-start)" radius={4} />
+                  <CartesianGrid {...chartGrid} />
+                  <XAxis dataKey="full_name" {...chartAxis} />
+                  <YAxis allowDecimals={false} {...chartAxis} />
+                  <Tooltip cursor={chartCursor} {...chartTooltip} />
+                  {/* Flat primary, never the AI violet — a workload count is a
+                      database fact, not something a model produced. */}
+                  <Bar dataKey="open_tickets" fill="var(--color-primary-fill)" radius={4} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -120,7 +105,7 @@ export function TeamWorkload() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <Card>
-      <p className="font-display text-h1 font-semibold tabular-nums">{value}</p>
+      <p className="text-h1 font-semibold tabular-nums">{value}</p>
       <p className="text-caption text-muted mt-4 tracking-wide uppercase">{label}</p>
     </Card>
   )
@@ -144,8 +129,8 @@ const REPORTS = [
  */
 export function TeamReports() {
   return (
-    <div className="mx-auto max-w-[1440px]">
-      <h1 className="font-display text-h1 font-semibold">Team Reports</h1>
+    <div>
+      <h1 className="text-h1 font-semibold">Team Reports</h1>
       <p className="text-body text-muted mt-8">
         Scoped to your team — resolution time and SLA compliance for the people you lead.
       </p>

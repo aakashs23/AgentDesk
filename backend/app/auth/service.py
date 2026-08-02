@@ -322,7 +322,9 @@ async def invite_user(session: AsyncSession, body: UserCreate) -> UserOut:
         body.email,
         "You've been invited to AgentDesk",
         "Set your password to activate your account:",
-        "accept-invite",
+        # Same PasswordResetToken, same "Choose a password" screen — an /accept-invite
+        # route would be a second page doing exactly this.
+        "reset-password",
         raw,
     )
     return user_out

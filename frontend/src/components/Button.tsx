@@ -6,17 +6,17 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 type Size = 'sm' | 'md'
 
 const VARIANTS: Record<Variant, string> = {
-  // The brand gradient on a primary CTA is one of Doc 04's four permitted uses,
-  // and the low-opacity glow behind it is the one place a glow is earned.
-  primary: 'bg-linear-to-r from-brand-start to-brand-end text-white shadow-glow',
-  secondary: 'border border-border text-ink',
-  ghost: 'text-muted enabled:hover:text-ink',
+  // Doc 07 §11. Flat fill, no gradient and no glow — the gradient went with
+  // Doc 04, and colour on a CTA is now the same blue as every other action.
+  primary: 'bg-primary-fill enabled:hover:bg-primary-hover text-white',
+  secondary: 'border border-border text-ink enabled:hover:bg-sunken',
+  ghost: 'text-muted enabled:hover:text-ink enabled:hover:bg-sunken',
   danger: 'bg-critical text-white',
 }
 
 const SIZES: Record<Size, string> = {
-  sm: 'h-[36px] px-12 text-body-sm', // dense/inline only — below the touch minimum
-  md: 'h-[44px] px-16 text-body', // the Doc 04 minimum tap target
+  sm: 'h-[36px] px-12 text-body-sm', // Doc 07 standard; dense/inline only
+  md: 'h-[44px] px-16 text-body', // Doc 07 large, and the iOS tap minimum
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,9 +38,10 @@ export function Button({
       {...props}
       className={cn(
         'rounded-control inline-flex cursor-pointer items-center justify-center gap-8 font-medium',
-        'transition-[filter,background-color,color] duration-button ease-in-out',
-        // Doc 04 Component Behavior: +8% on hover, -5% on press, 40% when disabled.
-        'enabled:hover:brightness-108 enabled:active:brightness-95',
+        'transition-[filter,background-color,color,border-color] duration-button ease-out',
+        // Doc 07 §11 gives each variant its own hover fill, so the only global
+        // effects left are the press dim and the disabled state.
+        'enabled:active:brightness-95',
         'disabled:cursor-not-allowed disabled:opacity-40',
         VARIANTS[variant],
         SIZES[size],

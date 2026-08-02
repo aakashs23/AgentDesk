@@ -101,8 +101,8 @@ export function CsatModal({
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             className={cn(
-              'rounded-control border-border bg-canvas text-ink w-full border p-12',
-              'placeholder:text-muted focus:border-brand-start transition-colors duration-micro',
+              'rounded-control bg-sunken text-ink border-transparent focus:bg-surface focus:border-primary w-full border p-12',
+              'placeholder:text-muted focus:border-primary transition-colors duration-micro',
               focusRing,
             )}
           />
