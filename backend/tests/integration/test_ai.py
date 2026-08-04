@@ -6,6 +6,7 @@ migrated + seeded database (TestClient executes background tasks in-process,
 so monkeypatching app.ai.gemini reaches the pipeline).
 """
 
+import random
 import uuid
 
 import pytest
@@ -306,10 +307,16 @@ def test_a_published_article_is_retrieved_for_a_similar_ticket(monkeypatch, clie
     ticket, and the article grounds the AI draft. Publishing is what gives the
     article the embedding this retrieval matches on."""
     marker = uuid.uuid4().hex[:8]
-    vpn_vector = [0.0, 1.0] + [0.0] * (EMBEDDING_DIM - 2)
+    # The suite never rolls back (see conftest), so every past run left its own
+    # published VPN article behind. A fixed vector made them all exact ties at
+    # distance 0.0, and retrieval's LIMIT 3 eventually crowded out the article
+    # this run just published. Seeding off the marker makes the *vector* unique
+    # per run too, which is the isolation model conftest already documents.
+    rng = random.Random(marker)
+    run_vector = [rng.random() for _ in range(EMBEDDING_DIM)]
 
     async def keyed_embed(text: str) -> list[float]:
-        return vpn_vector if "vpn" in text.lower() else FAKE_VECTOR
+        return run_vector if marker in text else FAKE_VECTOR
 
     seen: list[str] = []
 
@@ -331,6 +338,6 @@ def test_a_published_article_is_retrieved_for_a_similar_ticket(monkeypatch, clie
     )
     assert published.status_code == 201, published.text
 
-    _create(client, tokens, "VPN keeps dropping", "My vpn disconnects every few minutes")
+    _create(client, tokens, "VPN keeps dropping", f"My vpn disconnects every few minutes {marker}")
     assert seen, "the draft node never ran"
     assert marker in seen[-1], "the published article never reached the draft prompt"

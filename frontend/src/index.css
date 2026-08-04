@@ -14,7 +14,9 @@
   --color-border: #e5e7eb;
   --color-divider: #f3f4f6;
   --color-ink: #111827;
-  --color-muted: #6b7280; /* 4.7:1 on canvas — the lightest text allowed */
+  --color-muted: #697079; /* lightest text allowed: 4.55:1 on sunken, the darkest
+                             surface it lands on (row hover, input placeholders).
+                             #6B7280 was 4.39:1 there — AA everywhere but hover. */
 
   /* Interaction. One blue, used for actions, selection, and state — never decoration.
      `primary` is the text/border/icon value and lightens on dark; `primary-fill` is
@@ -31,7 +33,10 @@
   --color-ai-fill: #7c3aed;
   --color-ai-tint: rgb(124 58 237 / 0.08);
 
-  /* Semantic / status — flat fills, always accompanied by a text label. */
+  /* Semantic / status — flat fills, always accompanied by a text label.
+     These are the hues Doc 07 §24 and DESIGN.md name, and they stay put: they are
+     correct as text, borders, icons and as bars in the SLA scrubber, none of which
+     put white on top of them. */
   --color-critical: #ef4444;
   --color-high: #f59e0b;
   --color-medium: #6b7280;
@@ -39,6 +44,15 @@
   --color-sla-breach: #ef4444;
   --color-sla-risk: #f59e0b;
   --color-success: #10b981;
+
+  /* ...but a *white label* on those hues fails AA badly (white on #10B981 is
+     2.5:1). So the semantics get the same `-fill` split `primary` and `ai` already
+     use: same hue, darkened until a white label clears 4.5:1. Anything rendering
+     `text-white` on a status colour must use the `-fill` token, never the bare one.
+     `medium` needs no variant — #6B7280 already carries white at 4.8:1. */
+  --color-critical-fill: #dc2626; /* white 4.8:1 */
+  --color-high-fill: #b45309; /* white 5.0:1 */
+  --color-success-fill: #047857; /* white 5.5:1 */
 
   /* One UI family plus mono. Space Grotesk and the separate display face are
      gone: headings are Inter at a heavier weight, which is what a product UI
@@ -231,6 +245,16 @@
 
   p {
     text-wrap: pretty;
+  }
+
+  /* Doc 07 §22 / DESIGN.md: 3px --color-primary, 2px offset, on every interactive
+     element, never removed. Components opt in with `focusRing` from lib/ui, which
+     is the same declaration as a Tailwind utility; this is the floor underneath
+     it, so an element that forgets the utility still gets a ring instead of
+     silently becoming keyboard-invisible. Same values, so the two never disagree. */
+  :focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
   }
 
   /* Nothing in the product is load-bearing on motion, so reduced-motion kills

@@ -1,4 +1,4 @@
-import { cn, statusLabel } from '../lib/ui'
+import { cn, readableOn, statusLabel } from '../lib/ui'
 
 /**
  * Status pills are flat fills — never the AI violet, which means the model — and
@@ -11,11 +11,11 @@ import { cn, statusLabel } from '../lib/ui'
 const TONES: Record<string, string> = {
   new: 'bg-medium text-white',
   open: 'bg-medium text-white',
-  in_progress: 'bg-high text-white',
+  in_progress: 'bg-high-fill text-white',
   on_hold: 'border border-border text-muted',
-  resolved: 'bg-success text-white',
+  resolved: 'bg-success-fill text-white',
   closed: 'border border-border text-muted',
-  reopened: 'bg-high text-white',
+  reopened: 'bg-high-fill text-white',
 }
 
 export function StatusPill({ status, className }: { status: string; className?: string }) {
@@ -45,9 +45,9 @@ export function PriorityPill({
 }) {
   return (
     <span
-      style={{ backgroundColor: colorHex }}
+      style={{ backgroundColor: colorHex, color: readableOn(colorHex) }}
       className={cn(
-        'rounded-pill text-caption inline-flex items-center px-12 py-4 font-medium tracking-wide text-white uppercase',
+        'rounded-pill text-caption inline-flex items-center px-12 py-4 font-medium tracking-wide uppercase',
         className,
       )}
     >

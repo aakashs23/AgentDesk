@@ -97,7 +97,7 @@ export function TopBar({
             // pixels (`--spacing-4: 4px`), so `h-4` compiles to a 4px-tall
             // badge here rather than stock Tailwind's 16px. Centring with flex
             // also retires the `leading-4` that was clipping the digits.
-            <span className="absolute -top-1 -right-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-critical px-1 text-[10px] font-bold text-white">
+            <span className="absolute -top-1 -right-1 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-critical-fill px-1 text-[10px] font-bold text-white">
               {unread > 99 ? '99+' : unread}
             </span>
           )}

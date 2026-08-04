@@ -17,6 +17,36 @@ export const focusRing =
  */
 export const tapTarget = 'min-h-[44px] min-w-[44px]'
 
+/**
+ * Ink or white, whichever is legible on `hex` — for the one fill the palette does
+ * not control: `priorities.color_hex` is admin-editable, so a pill hardcoding
+ * white text is one colour-picker click away from failing contrast. (The seeded
+ * Low green `#34D399` carries white at 1.9:1.)
+ *
+ * WCAG relative luminance rather than the cheaper YIQ trick, because the two
+ * disagree exactly around the mid-tones that priority colours actually use.
+ */
+export function readableOn(hex: string): '#111827' | '#ffffff' {
+  const value = hex.replace('#', '')
+  const full =
+    value.length === 3
+      ? value
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : value
+  if (!/^[0-9a-fA-F]{6}$/.test(full)) return '#ffffff'
+  const channel = (i: number) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  const luminance = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4)
+  const withWhite = 1.05 / (luminance + 0.05)
+  // #111827 is --color-ink; 0.0110 is its relative luminance.
+  const withInk = (luminance + 0.05) / (0.011 + 0.05)
+  return withWhite >= withInk ? '#ffffff' : '#111827'
+}
+
 export type ThemePreference = 'light' | 'dark' | 'system'
 export type ThemeMode = 'light' | 'dark'
 

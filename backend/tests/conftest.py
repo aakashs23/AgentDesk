@@ -146,6 +146,20 @@ def client(tmp_path_factory):
     # AI pipeline monkeypatch a fake key plus fake gemini functions per test
     get_settings().gemini_api_key = ""
 
+    # ...and never let it reach a real mail server either. `.env` carries live
+    # SMTP/IMAP credentials for the demo environment, and `mailer.send_email`
+    # falls back to "log it" only when `smtp_host` is empty — so without this the
+    # suite sends thousands of *real* emails from the developer's own account,
+    # at ~4s a call. That is slow enough to trip the 60s hang watchdog (one
+    # `monitor.scan_once` over a backlog of overdue tickets is hundreds of
+    # sends), and it burns the account's daily sending quota. The `outbox`
+    # fixture is for tests that want to assert on delivery; this is the floor
+    # under every test that does not.
+    get_settings().smtp_host = ""
+    # Same reasoning for the inbound side: the IMAP poller must not connect to a
+    # real mailbox and consume messages out of it.
+    get_settings().imap_host = ""
+
     # The suite logs in far more often than a real client from one IP — disable limits
     async def no_limit():
         return None

@@ -589,8 +589,8 @@ function ActionEditor({
 // --- Execution log ----------------------------------------------------------
 
 const LOG_STATUS_STYLE: Record<string, string> = {
-  success: 'bg-success text-white',
-  failed: 'bg-critical text-white',
+  success: 'bg-success-fill text-white',
+  failed: 'bg-critical-fill text-white',
   skipped: 'border border-border text-muted',
 }
 

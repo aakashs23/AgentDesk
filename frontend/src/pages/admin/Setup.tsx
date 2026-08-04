@@ -146,7 +146,7 @@ export function FirstTimeSetup() {
                   aria-hidden
                   className={cn(
                     'rounded-pill flex size-[28px] shrink-0 items-center justify-center text-sm font-medium',
-                    step.done ? 'bg-success text-white' : 'border-border text-muted border',
+                    step.done ? 'bg-success-fill text-white' : 'border-border text-muted border',
                   )}
                 >
                   {step.done ? <Check size={14} strokeWidth={2} /> : index + 1}

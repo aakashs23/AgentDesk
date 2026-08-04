@@ -30,7 +30,7 @@ violet carrying AI provenance, semantics for status. Nothing else is colored.
 | `--color-border` | `#E5E7EB` | Control borders, chart axes |
 | `--color-divider` | `#F3F4F6` | Table row rules, header underline |
 | `--color-ink` | `#111827` | Primary text |
-| `--color-muted` | `#6B7280` | Metadata, labels, table headers, empty-state icons |
+| `--color-muted` | `#697079` | Metadata, labels, table headers, empty-state icons |
 | `--color-primary` | `#0066FF` | Interactive text, links, focus rings, borders, active nav |
 | `--color-primary-fill` | `#0066FF` | Solids carrying a white label. Identical in dark |
 | `--color-primary-hover` | `#0052CC` | Primary button hover |
@@ -41,7 +41,18 @@ violet carrying AI provenance, semantics for status. Nothing else is colored.
 | `--color-critical` | `#EF4444` | Destructive actions, errors (`--color-sla-breach` matches) |
 | `--color-high` | `#F59E0B` | High priority (`--color-sla-risk` matches) |
 | `--color-success` | `#10B981` | Resolved, success toasts (`--color-low` matches) |
-| `--color-medium` | `#6B7280` | Medium priority, SLA timer at rest |
+| `--color-medium` | `#6B7280` | Medium priority, SLA timer at rest. Carries white at 4.8:1, so it needs no `-fill` |
+| `--color-critical-fill` | `#DC2626` | Danger button, count badge — solids under white text |
+| `--color-high-fill` | `#B45309` | *In Progress* / *Reopened* pills |
+| `--color-success-fill` | `#047857` | *Resolved* pill, checklist ticks, success badges |
+
+The three `-fill` variants exist because white on the bare hues fails AA badly (white on
+`#10B981` is 2.5:1). The bare token keeps the Doc 07 hue and stays correct as text, borders,
+icons and SLA scrubber bars — nothing sits on top of those. **Anything rendering `text-white`
+on a status colour uses the `-fill` token.** Enforced by `npm run selfcheck`, which computes
+the ratios rather than trusting these comments. `priorities.color_hex` is admin-editable and
+so outside the palette entirely — `PriorityPill` picks its foreground with `readableOn()`.
+**[resolved, Phase 15]**
 
 `#9CA3AF` from Doc 07 §28 is **not** used for text or meaningful icons — it lands at
 2.5:1 on white. Empty-state icons use `--color-muted`. **[resolved]**
@@ -166,3 +177,11 @@ Doc 07 §11–30 holds the rest.
 4.5:1 minimum on all text. Focus ring 3px `--color-primary`, 2px offset, on every
 interactive element, never removed. Native semantic elements throughout. Status is never
 color alone. Targets 40×40px on web, 44pt iOS, 48dp Android.
+
+All four are machine-checked by `npm run selfcheck` (`frontend/scripts/a11y.selfcheck.ts`),
+which parses these tokens out of `index.css` and **computes** the contrast ratios in both
+schemes rather than trusting the numbers written beside them. One documented exception:
+`--color-primary` on `--color-sunken` is 4.39:1 and `#0066FF` is pinned by Doc 07 §25, so it
+is allowed on the grounds that interactive text never lands on a sunken fill — and the check
+fails if that exception ever stops firing, so it cannot rot. Keyboard-only and screen-reader
+walkthroughs remain manual; see [Doc 08](docs/08%20AgentDesk%20Phase%2015%20QA%20Report.md).

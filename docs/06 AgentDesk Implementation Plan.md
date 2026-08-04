@@ -362,17 +362,19 @@ This document is the execution plan for everything defined in Documents 01–05.
 
 **Goal**: verify the whole system against every Acceptance Criteria item and edge case named across all five prior documents.
 
-- [ ] Test every Acceptance Criteria item from the original company requirements document: ticket creation confirmation, AI classification accuracy threshold, auto-routing, SLA alerts, RBAC enforcement, report export
-- [ ] Test every edge case from App Flow Document 03, Sections 6, 27, and 28: empty/error/loading states, AI-unavailable fallback, notification failure, email server unavailable, attachment upload failure, search unavailable, database timeout, auth timeout, rate limiting, duplicate detection, low AI confidence, deleted-user reassignment, reopen-after-SLA-expiry
-- [ ] Run a full accessibility pass against Document 04's Accessibility Considerations: contrast ratios, keyboard-only navigation through every core flow, screen-reader labels on status/AI chips, reduced-motion behavior
-- [ ] Run a cross-browser/responsive pass: latest Chrome, Firefox, Edge, Safari, plus the mobile/tablet breakpoints from Document 04
-- [ ] Load-test search and dashboard endpoints against a synthetically scaled-up dataset; `EXPLAIN ANALYZE` any slow queries to confirm Document 05's indexes are actually being used
-- [ ] Run a security pass: rate limiting works, all queries are parameterized (no string-built SQL), no sensitive field (Document 05, Section 8) ever appears in a response body or log, every Admin/Team-Lead-only screen is unreachable by a lower-privileged role via direct URL
+Results, with every exception documented: **[08 Phase 15 QA Report](08%20AgentDesk%20Phase%2015%20QA%20Report.md)**.
+
+- [x] Test every Acceptance Criteria item from the original company requirements document: ticket creation confirmation, AI classification accuracy threshold, auto-routing, SLA alerts, RBAC enforcement, report export — `tests/integration/test_acceptance_criteria.py`; the 85% accuracy *threshold* is a documented exception (needs a graded dataset, not code)
+- [x] Test every edge case from App Flow Document 03, Sections 6, 27, and 28: empty/error/loading states, AI-unavailable fallback, notification failure, email server unavailable, attachment upload failure, search unavailable, database timeout, auth timeout, rate limiting, duplicate detection, low AI confidence, deleted-user reassignment, reopen-after-SLA-expiry — `tests/edge_cases/test_service_degradation.py`; §28 duplicate *detection* is unbuilt and documented as such
+- [x] Run a full accessibility pass against Document 04's Accessibility Considerations: contrast ratios, keyboard-only navigation through every core flow, screen-reader labels on status/AI chips, reduced-motion behavior — `frontend/scripts/a11y.selfcheck.ts`; three real contrast failures found and fixed. **Keyboard-only and screen-reader walkthroughs are manual and were not executed.**
+- [ ] Run a cross-browser/responsive pass: latest Chrome, Firefox, Edge, Safari, plus the mobile/tablet breakpoints from Document 04 — **not executed**, needs a browser
+- [x] Load-test search and dashboard endpoints against a synthetically scaled-up dataset; `EXPLAIN ANALYZE` any slow queries to confirm Document 05's indexes are actually being used — `tests/performance/test_bulk_operations.py`; the FTS index is confirmed in-plan, the rest confirmed present
+- [x] Run a security pass: rate limiting works, all queries are parameterized (no string-built SQL), no sensitive field (Document 05, Section 8) ever appears in a response body or log, every Admin/Team-Lead-only screen is unreachable by a lower-privileged role via direct URL — `tests/security/test_secret_exposure.py` adds the AST scan for string-built SQL and the response/log secret sweep
 
 **Checkpoint**
-- [ ] Every Acceptance Criteria item and every named edge case has a passing test or a documented, deliberate exception
-- [ ] A direct search of test-run output confirms no `password_hash`, `token_hash`, or `webhooks.secret` value ever appeared in a response or log
-- [ ] Keyboard-only navigation completes ticket submission, ticket resolution, and admin configuration with no mouse
+- [x] Every Acceptance Criteria item and every named edge case has a passing test or a documented, deliberate exception — two exceptions, both in Document 08
+- [x] A direct search of test-run output confirms no `password_hash`, `token_hash`, or `webhooks.secret` value ever appeared in a response or log — asserted continuously by `test_secret_exposure.py` rather than by a one-off grep, so it holds for future runs
+- [ ] Keyboard-only navigation completes ticket submission, ticket resolution, and admin configuration with no mouse — **not executed**; the global focus ring that was the missing precondition is now in place
 
 ---
 

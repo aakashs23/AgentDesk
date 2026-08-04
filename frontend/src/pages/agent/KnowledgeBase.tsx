@@ -131,7 +131,7 @@ export function AgentKnowledgeBase() {
                     className={cn(
                       'rounded-pill text-caption shrink-0 px-12 py-4 font-medium tracking-wide uppercase',
                       article.status === 'published'
-                        ? 'bg-success text-white'
+                        ? 'bg-success-fill text-white'
                         : 'border-border text-muted border',
                     )}
                   >
